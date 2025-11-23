@@ -4,11 +4,16 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App.tsx';
 import './index.css';
 
-const manifestUrl = 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json';
+const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
+    <TonConnectUIProvider
+      manifestUrl={manifestUrl}
+      actionsConfiguration={{
+        twaReturnUrl: 'https://t.me/nft_gifts_bot'
+      }}
+    >
       <App />
     </TonConnectUIProvider>
   </StrictMode>

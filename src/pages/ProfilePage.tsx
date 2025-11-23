@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
 import ItemActionModal from '../components/ItemActionModal';
+import TonIcon from '../components/TonIcon';
 
 interface ProfilePageProps {
   inventory: Item[];
@@ -97,9 +98,7 @@ export default function ProfilePage({ inventory, balance, onSellItem, onWithdraw
               <p className="text-gray-400 text-xs mb-1">Bonus Earned</p>
               <div className="flex items-center justify-center gap-1">
                 <p className="text-white text-2xl font-bold">0</p>
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  V
-                </div>
+                <TonIcon className="w-5 h-5" />
               </div>
             </div>
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
