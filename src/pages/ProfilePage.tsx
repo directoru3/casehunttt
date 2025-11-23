@@ -41,16 +41,21 @@ export default function ProfilePage({ inventory, balance, onSellItem, onWithdraw
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black pb-24">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl p-8 mb-8 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 py-6 md:py-8">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl p-4 md:p-8 mb-6 md:mb-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
 
-          <div className="flex items-center gap-6 mb-6 relative z-10">
-            <div className="relative">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-6 relative z-10">
+            <div className="relative shrink-0">
               <img
                 src={telegramAuth.getAvatarUrl()}
                 alt={telegramAuth.getDisplayName()}
-                className="w-24 h-24 rounded-full border-4 border-white/30 shadow-xl"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/30 shadow-xl object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const firstLetter = telegramAuth.getDisplayName().charAt(0).toUpperCase();
+                  target.src = `https://ui-avatars.com/api/?name=${firstLetter}&background=0D8ABC&color=fff&size=128`;
+                }}
               />
               {currentUser?.isPremium && (
                 <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1.5 border-2 border-white">
@@ -58,84 +63,89 @@ export default function ProfilePage({ inventory, balance, onSellItem, onWithdraw
                 </div>
               )}
             </div>
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-1">{telegramAuth.getDisplayName()}</h1>
+            <div className="text-center md:text-left flex-1">
+              <h1 className="text-2xl md:text-4xl font-bold text-white mb-1">{telegramAuth.getDisplayName()}</h1>
               {currentUser?.username && (
-                <p className="text-white/90 text-lg mb-1">@{currentUser.username}</p>
+                <p className="text-white/90 text-base md:text-lg mb-2">@{currentUser.username}</p>
               )}
-              <div className="flex items-center gap-2">
-                <p className="text-white/70">ID: {userId}</p>
+              <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                <p className="text-white/70 text-sm md:text-base">ID: {userId}</p>
                 {currentUser?.isPremium && (
                   <span className="bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1">
                     <Star size={12} className="fill-yellow-300" />
                     Premium
                   </span>
                 )}
+                {currentUser?.languageCode && (
+                  <span className="bg-white/10 text-white/80 px-2 py-0.5 rounded-full text-xs font-semibold">
+                    {currentUser.languageCode.toUpperCase()}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Package size={20} className="text-white" />
-                <p className="text-white/80 text-sm">Total Items</p>
+                <Package size={18} className="text-white md:w-5 md:h-5" />
+                <p className="text-white/80 text-xs md:text-sm">Total Items</p>
               </div>
-              <p className="text-3xl font-bold text-white">{totalItems}</p>
+              <p className="text-2xl md:text-3xl font-bold text-white">{totalItems}</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={20} className="text-white" />
-                <p className="text-white/80 text-sm">Balance</p>
+                <TrendingUp size={18} className="text-white md:w-5 md:h-5" />
+                <p className="text-white/80 text-xs md:text-sm">Balance</p>
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-3xl font-bold text-white">{balance.toFixed(2)}</p>
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-blue-600 text-xs font-bold">
-                  V
+                <p className="text-2xl md:text-3xl font-bold text-white">{balance.toFixed(2)}</p>
+                <div className="w-5 h-5 md:w-6 md:h-6 bg-white rounded-full flex items-center justify-center text-blue-600 text-xs font-bold">
+                  T
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-900/50 rounded-2xl p-6 mb-6 border border-gray-800">
-          <h2 className="text-xl font-bold text-white mb-4">Referral Program</h2>
-          <p className="text-gray-400 text-sm mb-4">
+        <div className="bg-gray-900/50 rounded-2xl p-4 md:p-6 mb-6 border border-gray-800 animate-fade-in">
+          <h2 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Referral Program</h2>
+          <p className="text-gray-400 text-xs md:text-sm mb-4">
             Share your referral code with friends and get bonuses!
           </p>
           <div className="flex gap-3">
-            <div className="flex-1 bg-gray-800 rounded-lg px-4 py-3 flex items-center justify-between">
-              <span className="text-white font-mono">{referralCode}</span>
+            <div className="flex-1 bg-gray-800 rounded-lg px-3 md:px-4 py-2 md:py-3 flex items-center justify-between">
+              <span className="text-white font-mono text-sm md:text-base">{referralCode}</span>
               <button
                 onClick={copyReferralCode}
-                className="text-blue-400 hover:text-blue-300 transition-colors"
+                className="text-blue-400 hover:text-blue-300 active:scale-95 transition-all touch-manipulation"
               >
-                <Copy size={20} />
+                <Copy size={18} className="md:w-5 md:h-5" />
               </button>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-              <p className="text-gray-400 text-xs mb-1">Referrals</p>
-              <p className="text-white text-2xl font-bold">0</p>
+          <div className="mt-3 md:mt-4 grid grid-cols-3 gap-2 md:gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-2 md:p-3 text-center">
+              <p className="text-gray-400 text-[10px] md:text-xs mb-1">Referrals</p>
+              <p className="text-white text-xl md:text-2xl font-bold">0</p>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-              <p className="text-gray-400 text-xs mb-1">Bonus Earned</p>
+            <div className="bg-gray-800/50 rounded-lg p-2 md:p-3 text-center">
+              <p className="text-gray-400 text-[10px] md:text-xs mb-1">Bonus</p>
               <div className="flex items-center justify-center gap-1">
-                <p className="text-white text-2xl font-bold">0</p>
-                <TonIcon className="w-5 h-5" />
+                <p className="text-white text-xl md:text-2xl font-bold">0</p>
+                <TonIcon className="w-4 h-4 md:w-5 md:h-5" />
               </div>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-              <p className="text-gray-400 text-xs mb-1">Active</p>
-              <p className="text-green-400 text-2xl font-bold">0</p>
+            <div className="bg-gray-800/50 rounded-lg p-2 md:p-3 text-center">
+              <p className="text-gray-400 text-[10px] md:text-xs mb-1">Active</p>
+              <p className="text-green-400 text-xl md:text-2xl font-bold">0</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-800">
-          <h2 className="text-2xl font-bold text-white mb-6">My Inventory</h2>
+        <div className="bg-gray-900/50 rounded-2xl p-4 md:p-6 border border-gray-800 animate-fade-in">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">My Inventory</h2>
 
           {inventory.length === 0 ? (
             <div className="text-center py-12">
