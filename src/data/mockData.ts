@@ -65,7 +65,7 @@ export const mockItems: Record<string, Item[]> = {
     { id: 'i3', name: 'Бумажный самолетик', image_url: 'https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/aa/Plane.webp', rarity: 'rare', price: 5.8 }
   ],
   '2': [
-    { id: 'i4', name: 'Gold Token #1', image_url: 'https://images.pexels.com/photos/730547/pexels-photo-730547.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'uncommon', price: 3.2 },
+    { id: 'i4', name: 'Gold Token #1', image_url: 'https://t.me/nft/TopHat-2063', rarity: 'uncommon', price: 3.2 },
     { id: 'i5', name: 'Gold Token #2', image_url: 'https://images.pexels.com/photos/1036857/pexels-photo-1036857.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'uncommon', price: 2.9 },
     { id: 'i6', name: 'Epic Gold', image_url: 'https://images.pexels.com/photos/1054041/pexels-photo-1054041.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'epic', price: 12.5 }
   ],
