@@ -7,6 +7,7 @@ import CaseCard from './components/CaseCard';
 import CaseOpenModal from './components/CaseOpenModal';
 import MultiCaseOpenModal from './components/MultiCaseOpenModal';
 import MultiCaseResultModal from './components/MultiCaseResultModal';
+import DepositModal from './components/DepositModal';
 import BottomNav from './components/BottomNav';
 import ProfilePage from './pages/ProfilePage';
 import UpgradePage from './pages/UpgradePage';
@@ -25,6 +26,7 @@ function App() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [showMultiOpen, setShowMultiOpen] = useState(false);
   const [multiOpenResults, setMultiOpenResults] = useState<Item[] | null>(null);
+  const [showDeposit, setShowDeposit] = useState(false);
   const [inventory, setInventory] = useState<Item[]>([]);
   const [balance, setBalance] = useState(0);
 
@@ -110,6 +112,11 @@ function App() {
     }
   };
 
+  const handleDeposit = (newBalance: number) => {
+    setBalance(newBalance);
+    saveToLocalStorage(inventory, newBalance);
+  };
+
   const handleSellItem = (item: Item, inventoryIndex: number) => {
     const newInventory = [...inventory];
     newInventory.splice(inventoryIndex, 1);
@@ -153,7 +160,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black pt-16">
-      <Header balance={balance} />
+      <Header balance={balance} onDepositClick={() => setShowDeposit(true)} />
 
       {currentPage === 'main' && (
         <>
@@ -243,6 +250,14 @@ function App() {
         <MultiCaseResultModal
           winners={multiOpenResults}
           onClaimAll={handleClaimAll}
+        />
+      )}
+
+      {showDeposit && (
+        <DepositModal
+          onClose={() => setShowDeposit(false)}
+          onDeposit={handleDeposit}
+          currentBalance={balance}
         />
       )}
     </div>
