@@ -6,7 +6,7 @@ export default function PromoSection() {
       <div className="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20">
           <img
-            src="https://images.pexels.com/photos/8111863/pexels-photo-8111863.jpeg?auto=compress&cs=tinysrgb&w=400"
+            src="https://media.bloomingbit.io/prod/news/31f31d04-c430-4cea-9889-7e84a4142347.webp"
             alt="Gift"
             className="w-full h-full object-cover"
           />
