@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
+import TonIcon from './TonIcon';
 
 interface ItemActionModalProps {
   item: Item;
@@ -34,9 +35,7 @@ export default function ItemActionModal({ item, onClose, onSell, onWithdraw }: I
               {item.rarity} Rarity
             </p>
             <div className="flex items-center justify-center gap-2 bg-black/30 px-4 py-2 rounded-lg inline-flex">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                V
-              </div>
+              <TonIcon className="w-6 h-6" />
               <span className="text-blue-300 text-xl font-bold">{item.price}</span>
             </div>
           </div>
@@ -49,9 +48,7 @@ export default function ItemActionModal({ item, onClose, onSell, onWithdraw }: I
           >
             <span>Продать</span>
             <span className="text-green-200">+ {item.price * 0.94}</span>
-            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-green-600 text-xs font-bold">
-              V
-            </div>
+            <TonIcon className="w-5 h-5" />
           </button>
 
           <button

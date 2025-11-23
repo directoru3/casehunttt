@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Users, Plane } from 'lucide-react';
 import { Item, supabase } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
+import TonIcon from '../components/TonIcon';
 
 interface PlayerBet {
   id: string;
@@ -581,9 +582,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
                   <div className="flex-1">
                     <p className="text-white font-bold text-xl mb-2">{selectedItem.name}</p>
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">V</span>
-                      </div>
+                      <TonIcon className="w-6 h-6" />
                       <span className="text-white font-bold text-2xl">{selectedItem.price.toFixed(2)} TON</span>
                     </div>
                     <div className="flex gap-2">
@@ -618,9 +617,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
                   <div>
                     <p className="text-white font-bold text-lg mb-1">{selectedItem!.name}</p>
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-sky-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">V</span>
-                      </div>
+                      <TonIcon className="w-5 h-5" />
                       <span className="text-gray-300 font-bold">{selectedItem!.price.toFixed(2)} TON</span>
                     </div>
                   </div>
@@ -691,9 +688,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold text-sm truncate">{bet.username}</p>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-sky-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-[8px] font-bold">V</span>
-                        </div>
+                        <TonIcon className="w-3 h-3" />
                         <span className="text-gray-300 text-xs">{bet.bet_amount.toFixed(1)}</span>
                       </div>
                     </div>
@@ -759,9 +754,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
                     </div>
                     <p className="text-white text-xs font-bold truncate mb-1">{item.name}</p>
                     <div className="flex items-center justify-center gap-1">
-                      <div className="w-4 h-4 bg-sky-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-[8px] font-bold">V</span>
-                      </div>
+                      <TonIcon className="w-4 h-4" />
                       <span className="text-white text-xs font-bold">{item.price.toFixed(2)}</span>
                     </div>
                   </div>

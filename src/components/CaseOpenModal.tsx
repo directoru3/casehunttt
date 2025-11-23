@@ -33,6 +33,43 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
 
   const [displayItems, setDisplayItems] = useState<Item[]>(generateItems());
 
+  const selectWinnerByRarity = () => {
+    const random = Math.random() * 100;
+    let cumulativeProbability = 0;
+
+    const sortedItems = [...items].sort((a, b) => {
+      const rarityOrder: { [key: string]: number } = {
+        'common': 1,
+        'uncommon': 2,
+        'rare': 3,
+        'epic': 4,
+        'legendary': 5
+      };
+      return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+    });
+
+    for (const item of sortedItems) {
+      const probability = getRarityProbability(item.rarity);
+      cumulativeProbability += probability;
+      if (random <= cumulativeProbability) {
+        return item;
+      }
+    }
+
+    return sortedItems[0];
+  };
+
+  const getRarityProbability = (rarity: string): number => {
+    const probabilities: { [key: string]: number } = {
+      'common': 50,
+      'uncommon': 30,
+      'rare': 15,
+      'epic': 4,
+      'legendary': 1
+    };
+    return probabilities[rarity] || 10;
+  };
+
   const handleSpin = () => {
     if (spinning || insufficientFunds) return;
 
@@ -41,8 +78,7 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
     setShowDecision(false);
     setDisplayItems(generateItems());
 
-    const winningIndex = Math.floor(Math.random() * items.length);
-    const winner = items[winningIndex];
+    const winner = selectWinnerByRarity();
 
     setTimeout(() => {
       setWonItem(winner);
@@ -62,14 +98,14 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
   };
 
   const handleKeep = () => {
-    if (wonItem) {
+    if (wonItem && showDecision) {
       onKeepItem(wonItem, caseData.price);
       onClose();
     }
   };
 
   const handleSell = () => {
-    if (wonItem) {
+    if (wonItem && showDecision) {
       onClose();
     }
   };
@@ -85,8 +121,13 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative border border-gray-800">
         <button
-          onClick={onClose}
-          className="sticky top-0 right-0 ml-auto mb-4 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all z-20"
+          onClick={() => {
+            if (!spinning) {
+              onClose();
+            }
+          }}
+          disabled={spinning}
+          className="sticky top-0 right-0 ml-auto mb-4 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all z-20"
         >
           <ChevronDown size={20} />
           <span className="font-semibold">Close</span>
@@ -118,9 +159,10 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
                       alt={item.name}
                       className="w-16 h-16 object-cover rounded mb-2"
                     />
-                    <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-gray-900 text-xs font-bold">
-                      V
-                    </div>
+                        <svg className="w-6 h-6" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="#0098EA"/>
+                      <path d="M37.5603 15.6277H18.4386C14.9228 15.6277 12.6944 19.4202 14.4632 22.4861L26.2644 42.9409C27.0345 44.2765 28.9644 44.2765 29.7345 42.9409L41.5381 22.4861C43.3045 19.4251 41.0761 15.6277 37.5627 15.6277H37.5603Z" fill="white"/>
+                    </svg>
                   </div>
                 );
               })}
@@ -203,9 +245,10 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, ba
               <span>{spinning ? 'Spinning...' : 'Spin'}</span>
               <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded">
                 <span>{caseData.price}</span>
-                <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-blue-500 text-xs font-bold">
-                  V
-                </div>
+                <svg className="w-5 h-5" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="#0098EA"/>
+                  <path d="M37.5603 15.6277H18.4386C14.9228 15.6277 12.6944 19.4202 14.4632 22.4861L26.2644 42.9409C27.0345 44.2765 28.9644 44.2765 29.7345 42.9409L41.5381 22.4861C43.3045 19.4251 41.0761 15.6277 37.5627 15.6277H37.5603Z" fill="white"/>
+                </svg>
               </div>
             </button>
           )}
