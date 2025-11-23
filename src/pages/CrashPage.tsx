@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, TrendingUp, Rocket, Star } from 'lucide-react';
+import { Volume2, VolumeX, Users, Plane } from 'lucide-react';
 import { Item, supabase } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
 
-interface CrashBet {
+interface PlayerBet {
   id: string;
   user_id: string;
   username: string;
@@ -15,6 +15,7 @@ interface CrashBet {
   cashout_multiplier: number | null;
   winnings: number | null;
   status: 'pending' | 'cashed_out' | 'lost';
+  avatar_color: string;
 }
 
 interface CrashPageProps {
@@ -27,77 +28,42 @@ interface CrashPageProps {
 
 export default function CrashPage({ inventory, balance, setBalance, addItemToInventory, removeItemFromInventory }: CrashPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'waiting' | 'playing' | 'crashed'>('waiting');
+  const [gameState, setGameState] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [multiplier, setMultiplier] = useState(1.0);
   const [crashPoint, setCrashPoint] = useState(0);
   const [currentRoundId, setCurrentRoundId] = useState<string | null>(null);
   const [nextRoundId, setNextRoundId] = useState<string | null>(null);
-  const [betAmount, setBetAmount] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [nextRoundItem, setNextRoundItem] = useState<Item | null>(null);
-  const [wonAmount, setWonAmount] = useState<number | null>(null);
-  const [cashoutMultiplier, setCashoutMultiplier] = useState<number | null>(null);
-  const [isSoundOn, setIsSoundOn] = useState(true);
-  const [currentBets, setCurrentBets] = useState<CrashBet[]>([]);
-  const [myBet, setMyBet] = useState<CrashBet | null>(null);
-  const [myNextRoundBet, setMyNextRoundBet] = useState<CrashBet | null>(null);
+  const [myBet, setMyBet] = useState<PlayerBet | null>(null);
+  const [allBets, setAllBets] = useState<PlayerBet[]>([]);
   const [userId] = useState(() => `user-${Math.random().toString(36).substr(2, 9)}`);
-  const [username] = useState(() => `Player${Math.floor(Math.random() * 9999)}`);
+  const [username] = useState(() => `Игрок${Math.floor(Math.random() * 9999)}`);
   const [countdown, setCountdown] = useState(10);
-  const [history, setHistory] = useState<number[]>([]);
+  const [isSoundOn, setIsSoundOn] = useState(true);
+  const [showExplosion, setShowExplosion] = useState(false);
   const animationRef = useRef<number>();
-  const starsRef = useRef<Array<{ x: number; y: number; size: number; speed: number }>>([]);
+  const cloudsRef = useRef<Array<{ x: number; y: number; size: number; speed: number }>>([]);
 
   const generateCrashPoint = () => {
-    return 1.5 + Math.random() * 3.5;
+    const random = Math.random();
+    if (random < 0.03) return 1.0 + Math.random() * 0.5;
+    if (random < 0.15) return 1.5 + Math.random() * 0.5;
+    if (random < 0.40) return 2.0 + Math.random();
+    if (random < 0.70) return 3.0 + Math.random() * 2;
+    return 5.0 + Math.random() * 5;
   };
 
-  const initializeStars = () => {
-    const stars = [];
-    for (let i = 0; i < 100; i++) {
-      stars.push({
-        x: Math.random() * 800,
+  const initializeClouds = () => {
+    const clouds = [];
+    for (let i = 0; i < 8; i++) {
+      clouds.push({
+        x: Math.random() * 1000,
         y: Math.random() * 400,
-        size: Math.random() * 2,
-        speed: Math.random() * 0.5 + 0.2,
+        size: 60 + Math.random() * 40,
+        speed: 0.3 + Math.random() * 0.4,
       });
     }
-    starsRef.current = stars;
-  };
-
-  const fetchCurrentBets = async (roundId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('crash_bets')
-        .select('*')
-        .eq('round_id', roundId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching bets:', error);
-        return;
-      }
-
-      if (data) {
-        const betsWithUsernames = await Promise.all(
-          data.map(async (bet) => {
-            const { data: profile } = await supabase
-              .from('crash_user_profiles')
-              .select('username')
-              .eq('user_id', bet.user_id)
-              .maybeSingle();
-
-            return {
-              ...bet,
-              username: profile?.username || 'Anonymous',
-            } as CrashBet;
-          })
-        );
-        setCurrentBets(betsWithUsernames);
-      }
-    } catch (err) {
-      console.error('Exception fetching bets:', err);
-    }
+    cloudsRef.current = clouds;
   };
 
   const createNewRound = async () => {
@@ -113,25 +79,54 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating round:', error);
-        return null;
-      }
+      if (error) throw error;
 
       if (data) {
-        console.log('Created new round:', data.id, 'crash point:', newCrashPoint);
         return { id: data.id, crashPoint: newCrashPoint };
       }
       return null;
     } catch (err) {
-      console.error('Exception creating round:', err);
+      console.error('Error creating round:', err);
       return null;
+    }
+  };
+
+  const fetchBets = async (roundId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('crash_bets')
+        .select('*')
+        .eq('round_id', roundId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const betsWithUsernames = await Promise.all(
+          data.map(async (bet) => {
+            const { data: profile } = await supabase
+              .from('crash_user_profiles')
+              .select('username')
+              .eq('user_id', bet.user_id)
+              .maybeSingle();
+
+            const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
+            return {
+              ...bet,
+              username: profile?.username || 'Игрок',
+              avatar_color: colors[Math.floor(Math.random() * colors.length)],
+            } as PlayerBet;
+          })
+        );
+        setAllBets(betsWithUsernames);
+      }
+    } catch (err) {
+      console.error('Error fetching bets:', err);
     }
   };
 
   const startRound = async (roundId: string, roundCrashPoint: number) => {
     try {
-      console.log('Starting round:', roundId, 'with crash point:', roundCrashPoint);
       setCrashPoint(roundCrashPoint);
 
       await supabase
@@ -139,35 +134,21 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
         .update({ status: 'active', started_at: new Date().toISOString() })
         .eq('id', roundId);
 
-      setGameState('playing');
+      setGameState('flying');
       setMultiplier(1.0);
-
-      if (myNextRoundBet && nextRoundItem) {
-        setMyBet(myNextRoundBet);
-        setSelectedItem(nextRoundItem);
-        setBetAmount(nextRoundItem.price);
-        setMyNextRoundBet(null);
-        setNextRoundItem(null);
-      }
-
-      animateGraph(roundId, roundCrashPoint);
+      animateFlight(roundId, roundCrashPoint);
     } catch (err) {
-      console.error('Exception starting round:', err);
+      console.error('Error starting round:', err);
     }
   };
 
   const endRound = async (roundId: string, finalMultiplier: number) => {
     try {
-      console.log('Ending round:', roundId, 'at', finalMultiplier);
-
-      setHistory(prev => [finalMultiplier, ...prev].slice(0, 10));
-
       await supabase
         .from('crash_rounds')
         .update({
           status: 'crashed',
           ended_at: new Date().toISOString(),
-          crash_multiplier: finalMultiplier
         })
         .eq('id', roundId);
 
@@ -187,27 +168,29 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
       }
 
       setGameState('crashed');
+      setShowExplosion(true);
 
-      if (myBet && myBet.status === 'pending' && selectedItem) {
-        console.log('Player lost - item removed permanently');
+      if (myBet && myBet.status === 'pending') {
         setMyBet({ ...myBet, status: 'lost' });
       }
 
-      await fetchCurrentBets(roundId);
+      await fetchBets(roundId);
+
+      setTimeout(() => setShowExplosion(false), 1500);
     } catch (err) {
-      console.error('Exception ending round:', err);
+      console.error('Error ending round:', err);
     }
   };
 
-  const animateGraph = (roundId: string, targetCrashPoint: number) => {
+  const animateFlight = (roundId: string, targetCrashPoint: number) => {
     const startTime = Date.now();
-    const duration = 15000;
+    const duration = targetCrashPoint * 3000;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      const currentMultiplier = 1 + Math.pow(progress, 2) * (targetCrashPoint - 1);
+      const currentMultiplier = 1 + (targetCrashPoint - 1) * Math.pow(progress, 0.7);
 
       if (currentMultiplier >= targetCrashPoint || progress >= 1) {
         setMultiplier(targetCrashPoint);
@@ -216,193 +199,174 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
       }
 
       setMultiplier(currentMultiplier);
-      drawGraph(currentMultiplier);
+      drawScene(currentMultiplier, progress);
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
   };
 
-  const drawGraph = (currentMultiplier: number) => {
+  const drawScene = (currentMultiplier: number, progress: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const CANVAS_WIDTH = canvas.width;
-    const CANVAS_HEIGHT = canvas.height;
+    const width = canvas.width;
+    const height = canvas.height;
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    gradient.addColorStop(0, '#0a0e27');
-    gradient.addColorStop(0.5, '#1a1b3d');
-    gradient.addColorStop(1, '#0f0a1e');
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#0ea5e9');
+    gradient.addColorStop(0.5, '#38bdf8');
+    gradient.addColorStop(1, '#7dd3fc');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, width, height);
 
-    starsRef.current.forEach(star => {
-      star.y += star.speed;
-      if (star.y > CANVAS_HEIGHT) {
-        star.y = 0;
-        star.x = Math.random() * CANVAS_WIDTH;
+    cloudsRef.current.forEach(cloud => {
+      cloud.x -= cloud.speed;
+      if (cloud.x + cloud.size < 0) {
+        cloud.x = width + cloud.size;
+        cloud.y = Math.random() * height;
       }
 
-      ctx.fillStyle = `rgba(255, 255, 255, ${star.size / 2})`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+      ctx.arc(cloud.x + cloud.size * 0.5, cloud.y - cloud.size * 0.2, cloud.size * 0.8, 0, Math.PI * 2);
+      ctx.arc(cloud.x + cloud.size, cloud.y, cloud.size * 0.9, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < CANVAS_WIDTH; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, CANVAS_HEIGHT);
-      ctx.stroke();
-    }
-    for (let i = 0; i < CANVAS_HEIGHT; i += 40) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(CANVAS_WIDTH, i);
-      ctx.stroke();
-    }
+    const planeX = 100 + (width - 200) * progress;
+    const planeY = height - 100 - (height - 200) * Math.pow(progress, 0.6);
 
-    const progress = (currentMultiplier - 1) / (crashPoint - 1);
-    const pointCount = Math.floor(progress * 150);
-
-    const lineGradient = ctx.createLinearGradient(0, CANVAS_HEIGHT, 0, 0);
-    if (gameState === 'crashed') {
-      lineGradient.addColorStop(0, '#ef4444');
-      lineGradient.addColorStop(1, '#dc2626');
-    } else {
-      lineGradient.addColorStop(0, '#10b981');
-      lineGradient.addColorStop(0.5, '#22c55e');
-      lineGradient.addColorStop(1, '#84cc16');
-    }
-
-    ctx.strokeStyle = lineGradient;
+    ctx.strokeStyle = gameState === 'crashed' ? '#ef4444' : '#10b981';
     ctx.lineWidth = 4;
     ctx.shadowColor = gameState === 'crashed' ? '#ef4444' : '#10b981';
     ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.moveTo(20, CANVAS_HEIGHT - 50);
+    ctx.moveTo(100, height - 100);
 
-    for (let i = 1; i <= pointCount; i++) {
-      const p = i / 150;
-      const x = 20 + (CANVAS_WIDTH - 40) * p;
-      const mult = 1 + Math.pow(p, 2) * (crashPoint - 1);
-      let y = CANVAS_HEIGHT - 50 - Math.log(mult) * 80;
-      y = Math.max(20, y);
+    for (let i = 0; i <= progress * 100; i++) {
+      const p = i / 100;
+      const x = 100 + (width - 200) * p;
+      const y = height - 100 - (height - 200) * Math.pow(p, 0.6);
       ctx.lineTo(x, y);
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
 
+    ctx.save();
+    ctx.translate(planeX, planeY);
+    ctx.rotate(-Math.PI / 6);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(-20, 0);
+    ctx.lineTo(20, 0);
+    ctx.lineTo(25, -5);
+    ctx.lineTo(20, -10);
+    ctx.lineTo(-20, -10);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.moveTo(-15, -10);
+    ctx.lineTo(-15, -20);
+    ctx.lineTo(0, -15);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-10, -5, 8, 3);
+
+    ctx.restore();
+
     ctx.fillStyle = gameState === 'crashed' ? '#ef4444' : '#ffffff';
     ctx.shadowColor = gameState === 'crashed' ? '#ef4444' : '#10b981';
-    ctx.shadowBlur = 20;
-    ctx.font = 'bold 64px Arial';
+    ctx.shadowBlur = 30;
+    ctx.font = 'bold 56px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`${currentMultiplier.toFixed(2)}x`, CANVAS_WIDTH / 2, 100);
+    ctx.fillText(`${currentMultiplier.toFixed(2)}x`, width / 2, 80);
     ctx.shadowBlur = 0;
-  };
 
-  const handleSelectItem = (item: Item) => {
-    if (gameState === 'waiting' && !selectedItem && !nextRoundItem) {
-      setSelectedItem(item);
-      setBetAmount(item.price);
-    } else if (gameState === 'playing' && !nextRoundItem) {
-      setNextRoundItem(item);
+    if (showExplosion) {
+      for (let i = 0; i < 20; i++) {
+        const angle = (Math.PI * 2 * i) / 20;
+        const distance = 30 + Math.random() * 30;
+        ctx.fillStyle = `rgba(255, ${100 + Math.random() * 100}, 0, ${0.8 - Math.random() * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(
+          planeX + Math.cos(angle) * distance,
+          planeY + Math.sin(angle) * distance,
+          5 + Math.random() * 5,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
     }
   };
 
   const handlePlaceBet = async () => {
-    const itemToUse = gameState === 'waiting' ? selectedItem : nextRoundItem;
-    const roundIdToUse = gameState === 'waiting' ? currentRoundId : nextRoundId;
+    if (!selectedItem || !currentRoundId || myBet) return;
 
-    if (!itemToUse || !roundIdToUse) {
-      console.log('Cannot place bet:', { itemToUse, roundIdToUse });
-      return;
-    }
-
-    console.log('Placing bet with item:', itemToUse.name, 'for round:', roundIdToUse);
-
-    removeItemFromInventory(itemToUse.id);
+    removeItemFromInventory(selectedItem.id);
 
     try {
-      const { data: profile } = await supabase
+      let profile = await supabase
         .from('crash_user_profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!profile) {
-        console.log('Creating user profile');
+      if (!profile.data) {
         await supabase.from('crash_user_profiles').insert({
           user_id: userId,
           username: username,
         });
       }
 
-      console.log('Inserting bet into database');
       const { data: betData, error } = await supabase
         .from('crash_bets')
         .insert({
-          round_id: roundIdToUse,
+          round_id: currentRoundId,
           user_id: userId,
-          item_id: itemToUse.id,
-          item_name: itemToUse.name,
-          item_image: itemToUse.image_url,
-          item_rarity: itemToUse.rarity,
-          bet_amount: itemToUse.price,
+          item_id: selectedItem.id,
+          item_name: selectedItem.name,
+          item_image: selectedItem.image_url,
+          item_rarity: selectedItem.rarity,
+          bet_amount: selectedItem.price,
           status: 'pending',
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error creating bet:', error);
-        addItemToInventory(itemToUse);
+        addItemToInventory(selectedItem);
         return;
       }
 
       if (betData) {
-        console.log('Bet created successfully:', betData.id);
-        const newBet: CrashBet = {
+        const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
+        setMyBet({
           ...betData,
           username: username,
-        };
-
-        if (gameState === 'waiting') {
-          setMyBet(newBet);
-          await fetchCurrentBets(roundIdToUse);
-        } else {
-          setMyNextRoundBet(newBet);
-        }
+          avatar_color: colors[Math.floor(Math.random() * colors.length)],
+        });
+        await fetchBets(currentRoundId);
       }
     } catch (err) {
-      console.error('Exception placing bet:', err);
-      addItemToInventory(itemToUse);
-    }
-  };
-
-  const handleCancelBet = () => {
-    if (gameState === 'waiting' && selectedItem && !myBet) {
-      setSelectedItem(null);
-      setBetAmount(null);
-    } else if (gameState === 'playing' && nextRoundItem && !myNextRoundBet) {
-      setNextRoundItem(null);
+      console.error('Error placing bet:', err);
+      addItemToInventory(selectedItem);
     }
   };
 
   const handleCashout = async () => {
-    if (gameState !== 'playing' || !myBet || !selectedItem || !currentRoundId) {
-      console.log('Cannot cashout:', { gameState, myBet, selectedItem, currentRoundId });
-      return;
-    }
+    if (gameState !== 'flying' || !myBet || !selectedItem || !currentRoundId) return;
 
-    console.log('Cashing out at', multiplier);
     const winnings = Number((selectedItem.price * multiplier).toFixed(2));
 
     try {
@@ -415,9 +379,6 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
         })
         .eq('id', myBet.id);
 
-      setWonAmount(winnings);
-      setCashoutMultiplier(multiplier);
-
       const wonItem: Item = {
         id: `won-${Date.now()}`,
         name: selectedItem.name,
@@ -428,22 +389,21 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
       addItemToInventory(wonItem);
 
       setMyBet({ ...myBet, status: 'cashed_out', cashout_multiplier: multiplier, winnings });
-      await fetchCurrentBets(currentRoundId);
+      await fetchBets(currentRoundId);
     } catch (err) {
-      console.error('Exception cashing out:', err);
+      console.error('Error cashing out:', err);
     }
   };
 
   useEffect(() => {
-    console.log('Initializing crash game');
-    initializeStars();
+    initializeClouds();
 
     const initGame = async () => {
       const roundData = await createNewRound();
       if (roundData) {
         setCurrentRoundId(roundData.id);
         setCountdown(10);
-        await fetchCurrentBets(roundData.id);
+        await fetchBets(roundData.id);
       }
 
       const nextRoundData = await createNewRound();
@@ -461,12 +421,10 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
 
   useEffect(() => {
     if (gameState === 'waiting' && currentRoundId) {
-      console.log('Starting countdown from', countdown);
       const countdownInterval = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-
             supabase
               .from('crash_rounds')
               .select('crash_multiplier')
@@ -485,14 +443,10 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
 
       return () => clearInterval(countdownInterval);
     } else if (gameState === 'crashed') {
-      console.log('Round crashed, resetting in 3 seconds');
       const resetTimeout = setTimeout(async () => {
         setMyBet(null);
         setSelectedItem(null);
-        setBetAmount(null);
-        setWonAmount(null);
-        setCashoutMultiplier(null);
-        setCurrentBets([]);
+        setAllBets([]);
         setMultiplier(1.0);
 
         setCurrentRoundId(nextRoundId);
@@ -504,7 +458,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
         if (nextRoundId) {
           setGameState('waiting');
           setCountdown(10);
-          await fetchCurrentBets(nextRoundId);
+          await fetchBets(nextRoundId);
         }
       }, 3000);
 
@@ -515,23 +469,22 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
   useEffect(() => {
     if (currentRoundId && gameState === 'waiting') {
       const interval = setInterval(() => {
-        fetchCurrentBets(currentRoundId);
+        fetchBets(currentRoundId);
       }, 2000);
-
       return () => clearInterval(interval);
     }
   }, [currentRoundId, gameState]);
 
   useEffect(() => {
-    if (gameState === 'waiting' || gameState === 'crashed') {
+    if (gameState === 'waiting') {
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-          gradient.addColorStop(0, '#0a0e27');
-          gradient.addColorStop(0.5, '#1a1b3d');
-          gradient.addColorStop(1, '#0f0a1e');
+          gradient.addColorStop(0, '#0ea5e9');
+          gradient.addColorStop(0.5, '#38bdf8');
+          gradient.addColorStop(1, '#7dd3fc');
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -544,9 +497,9 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Rocket className="text-purple-400" size={28} />
-            <h1 className="text-white text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Crash Game
+            <Plane className="text-sky-400" size={28} />
+            <h1 className="text-white text-3xl font-bold bg-gradient-to-r from-sky-400 to-blue-400 bg-clip-text text-transparent">
+              Самолетик
             </h1>
           </div>
           <button
@@ -557,34 +510,11 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
           </button>
         </div>
 
-        {history.length > 0 && (
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 mb-6 border border-slate-700">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="text-yellow-400" size={16} />
-              <h3 className="text-white font-bold text-sm">История раундов</h3>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {history.map((mult, idx) => (
-                <div
-                  key={idx}
-                  className={`px-4 py-2 rounded-lg font-bold text-sm ${
-                    mult >= 2
-                      ? 'bg-green-600/20 text-green-400 border border-green-500/50'
-                      : 'bg-red-600/20 text-red-400 border border-red-500/50'
-                  }`}
-                >
-                  {mult.toFixed(2)}x
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-purple-500/30 overflow-hidden shadow-2xl mb-8 relative">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-sky-500/30 overflow-hidden shadow-2xl mb-8 relative">
           <canvas
             ref={canvasRef}
-            width={800}
-            height={400}
+            width={1000}
+            height={500}
             className="w-full"
           />
 
@@ -592,11 +522,11 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="text-center">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-purple-500 blur-3xl opacity-50 animate-pulse"></div>
-                  <p className="relative text-white text-6xl font-bold">{countdown}</p>
+                  <div className="absolute inset-0 bg-sky-500 blur-3xl opacity-50 animate-pulse"></div>
+                  <p className="relative text-white text-7xl font-bold">{countdown}</p>
                 </div>
-                <p className="text-gray-300 text-xl">Раунд начнется через {countdown}с</p>
-                <p className="text-purple-400 text-sm mt-2">Сделайте вашу ставку!</p>
+                <p className="text-gray-300 text-2xl mb-2">Раунд начнется через {countdown}с</p>
+                <p className="text-sky-400 text-lg">Самолетик взлетает!</p>
               </div>
             </div>
           )}
@@ -604,31 +534,30 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
           {gameState === 'crashed' && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
               <div className="text-center">
-                {wonAmount ? (
+                {myBet?.status === 'cashed_out' ? (
                   <>
                     <div className="relative inline-block mb-4">
                       <div className="absolute inset-0 bg-green-500 blur-3xl opacity-50 animate-pulse"></div>
-                      <p className="relative text-green-400 text-5xl font-bold">ВЫИГРЫШ!</p>
+                      <p className="relative text-green-400 text-6xl font-bold">ВЫИГРЫШ!</p>
                     </div>
-                    <p className="text-white text-4xl mb-2 font-bold">+{wonAmount.toFixed(2)} TON</p>
-                    <p className="text-gray-300">Коэффициент: {cashoutMultiplier?.toFixed(2)}x</p>
+                    <p className="text-white text-5xl mb-2 font-bold">+{myBet.winnings?.toFixed(2)} TON</p>
+                    <p className="text-gray-300 text-xl">Коэффициент: {myBet.cashout_multiplier?.toFixed(2)}x</p>
                   </>
                 ) : myBet ? (
                   <>
                     <div className="relative inline-block mb-4">
                       <div className="absolute inset-0 bg-red-500 blur-3xl opacity-50 animate-pulse"></div>
-                      <p className="relative text-red-400 text-5xl font-bold">ОБРУШЕНИЕ!</p>
+                      <p className="relative text-red-400 text-6xl font-bold">ВЗРЫВ!</p>
                     </div>
-                    <p className="text-white text-xl">Предмет потерян</p>
-                    <p className="text-gray-300 text-sm mt-2">На коэффициенте {crashPoint.toFixed(2)}x</p>
+                    <p className="text-white text-2xl">Подарок потерян</p>
                   </>
                 ) : (
                   <>
                     <div className="relative inline-block mb-4">
                       <div className="absolute inset-0 bg-red-500 blur-3xl opacity-50 animate-pulse"></div>
-                      <p className="relative text-red-400 text-5xl font-bold">ОБРУШЕНИЕ!</p>
+                      <p className="relative text-red-400 text-6xl font-bold">ВЗРЫВ!</p>
                     </div>
-                    <p className="text-gray-300 text-sm mt-2">На коэффициенте {crashPoint.toFixed(2)}x</p>
+                    <p className="text-gray-300 text-xl">На {crashPoint.toFixed(2)}x</p>
                   </>
                 )}
               </div>
@@ -636,195 +565,190 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
           )}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border-2 border-blue-500/30 shadow-xl">
-            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-              <TrendingUp size={20} className="text-blue-400" />
-              Статистика
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg">
-                <span className="text-gray-400">Коэффициент:</span>
-                <span className="text-blue-400 font-bold text-3xl">{multiplier.toFixed(2)}x</span>
-              </div>
-              <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg">
-                <span className="text-gray-400">Ставка:</span>
-                <span className="text-white font-bold text-lg">{betAmount?.toFixed(2) || '—'} TON</span>
-              </div>
-              <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg">
-                <span className="text-gray-400">Потенциальный выигрыш:</span>
-                <span className="text-green-400 font-bold text-lg">{betAmount ? (betAmount * multiplier).toFixed(2) : '—'} TON</span>
-              </div>
-              <div className="pt-3 border-t border-slate-700 flex justify-between items-center">
-                <span className="text-gray-400">Баланс:</span>
-                <span className="text-blue-300 font-bold text-xl">{balance.toFixed(2)} TON</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border-2 border-purple-500/30 shadow-xl">
-            <h3 className="text-white font-bold text-lg mb-4">
-              {gameState === 'playing' && nextRoundItem ? 'Ставка на следующий раунд' : 'Ваша ставка'}
-            </h3>
-            {(selectedItem || nextRoundItem) ? (
-              <div className={`${getRarityStyle((nextRoundItem || selectedItem)!.rarity).bg} rounded-xl p-4 border-2 ${getRarityStyle((nextRoundItem || selectedItem)!.rarity).border} ${getRarityStyle((nextRoundItem || selectedItem)!.rarity).shadow}`}>
-                <div className="mb-3 h-32 flex items-center justify-center bg-slate-950/40 rounded-lg p-2">
-                  <img
-                    src={(nextRoundItem || selectedItem)!.image_url}
-                    alt={(nextRoundItem || selectedItem)!.name}
-                    className="max-h-full max-w-full object-contain drop-shadow-2xl"
-                  />
-                </div>
-                <p className="text-white font-bold text-center text-sm mb-2">{(nextRoundItem || selectedItem)!.name}</p>
-                <p className={`${getRarityStyle((nextRoundItem || selectedItem)!.rarity).text} text-center text-xs capitalize mb-3`}>
-                  {(nextRoundItem || selectedItem)!.rarity}
-                </p>
-                <div className="flex items-center justify-center gap-2 bg-black/30 rounded-lg py-2 mb-3">
-                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">V</span>
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="md:col-span-2">
+            {selectedItem && !myBet ? (
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border-2 border-sky-500/30 shadow-xl">
+                <h3 className="text-white font-bold text-lg mb-4">Ваша ставка</h3>
+                <div className="flex items-center gap-4">
+                  <div className={`${getRarityStyle(selectedItem.rarity).bg} rounded-xl p-3 border-2 ${getRarityStyle(selectedItem.rarity).border} w-32 h-32 flex items-center justify-center`}>
+                    <img
+                      src={selectedItem.image_url}
+                      alt={selectedItem.name}
+                      className="max-h-full max-w-full object-contain drop-shadow-2xl"
+                    />
                   </div>
-                  <span className="text-white font-bold text-lg">{(nextRoundItem || selectedItem)!.price.toFixed(2)} TON</span>
+                  <div className="flex-1">
+                    <p className="text-white font-bold text-xl mb-2">{selectedItem.name}</p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">V</span>
+                      </div>
+                      <span className="text-white font-bold text-2xl">{selectedItem.price.toFixed(2)} TON</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handlePlaceBet}
+                        disabled={gameState !== 'waiting'}
+                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-all text-lg shadow-lg"
+                      >
+                        {gameState === 'waiting' ? 'Поставить' : 'Раунд идет'}
+                      </button>
+                      <button
+                        onClick={() => setSelectedItem(null)}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePlaceBet}
-                    disabled={!!(gameState === 'waiting' ? myBet : myNextRoundBet)}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg"
-                  >
-                    {(gameState === 'waiting' ? myBet : myNextRoundBet) ? 'Ставка принята' : 'Поставить'}
-                  </button>
-                  <button
-                    onClick={handleCancelBet}
-                    disabled={!!(gameState === 'waiting' ? myBet : myNextRoundBet)}
-                    className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all"
-                  >
-                    Отмена
-                  </button>
+              </div>
+            ) : myBet ? (
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border-2 border-sky-500/30 shadow-xl">
+                <h3 className="text-white font-bold text-lg mb-4">Ваша ставка в игре</h3>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className={`${getRarityStyle(selectedItem!.rarity).bg} rounded-xl p-3 border-2 ${getRarityStyle(selectedItem!.rarity).border} w-24 h-24 flex items-center justify-center`}>
+                    <img
+                      src={selectedItem!.image_url}
+                      alt={selectedItem!.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-lg mb-1">{selectedItem!.name}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-sky-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">V</span>
+                      </div>
+                      <span className="text-gray-300 font-bold">{selectedItem!.price.toFixed(2)} TON</span>
+                    </div>
+                  </div>
                 </div>
+                {gameState === 'flying' && myBet.status === 'pending' && (
+                  <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-2 border-green-500 rounded-xl p-4 mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-300">Текущий выигрыш:</span>
+                      <span className="text-green-400 font-bold text-2xl">
+                        {(selectedItem!.price * multiplier).toFixed(2)} TON
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Коэффициент:</span>
+                      <span className="text-white font-bold text-xl">{multiplier.toFixed(2)}x</span>
+                    </div>
+                  </div>
+                )}
+                {gameState === 'flying' && myBet.status === 'pending' && (
+                  <button
+                    onClick={handleCashout}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 rounded-xl transition-all text-xl shadow-2xl hover:shadow-green-500/50 hover:scale-105 transform animate-pulse"
+                  >
+                    Забрать {(selectedItem!.price * multiplier).toFixed(2)} TON
+                  </button>
+                )}
+                {myBet.status === 'cashed_out' && (
+                  <div className="bg-green-600/20 border-2 border-green-500 rounded-xl p-4 text-center">
+                    <p className="text-green-400 font-bold text-lg">Выигрыш забран!</p>
+                    <p className="text-white text-2xl font-bold">{myBet.winnings?.toFixed(2)} TON</p>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Star className="text-slate-500" size={32} />
-                </div>
-                <p className="text-gray-400">Выберите предмет из инвентаря</p>
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-12 border-2 border-slate-700 shadow-xl text-center">
+                <Plane className="text-slate-600 mx-auto mb-4" size={48} />
+                <p className="text-gray-400 text-lg">Выберите подарок для ставки</p>
               </div>
             )}
           </div>
-        </div>
 
-        {gameState === 'playing' && myBet && myBet.status === 'pending' && (
-          <button
-            onClick={handleCashout}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-8 rounded-2xl transition-all text-2xl shadow-2xl hover:shadow-green-500/50 hover:scale-105 transform border-2 border-green-400/50 mb-8 animate-pulse"
-          >
-            Забрать выигрыш ({(betAmount! * multiplier).toFixed(2)} TON)
-          </button>
-        )}
-
-        {(currentBets.length > 0 || myBet) && (
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-cyan-500/30 overflow-hidden mb-8 shadow-xl">
-            <h3 className="text-white font-bold text-lg px-6 py-4 border-b border-slate-700 bg-slate-800/50">
-              Ставки игроков ({currentBets.length + (myBet ? 1 : 0)})
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border-2 border-purple-500/30 shadow-xl">
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+              <Users size={20} className="text-purple-400" />
+              Игроки ({allBets.length})
             </h3>
-            <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-80 overflow-y-auto">
-              {myBet && (
-                <div className="bg-gradient-to-br from-cyan-600/20 to-blue-600/20 rounded-xl p-3 border-2 border-cyan-500 shadow-lg shadow-cyan-500/30">
-                  <div className="mb-2 h-16 flex items-center justify-center bg-black/20 rounded-lg p-1">
-                    <img
-                      src={myBet.item_image}
-                      alt={myBet.item_name}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                  <p className="text-cyan-300 text-xs font-bold mb-1">{myBet.username}</p>
-                  <p className="text-white text-xs font-bold truncate mb-1">{myBet.item_name}</p>
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-[7px] font-bold">V</span>
-                    </div>
-                    <span className="text-white text-xs font-bold">{myBet.bet_amount.toFixed(1)}</span>
-                  </div>
-                  <div className={`mt-2 px-2 py-1 rounded text-center text-xs font-bold ${
-                    myBet.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                    myBet.status === 'cashed_out' ? 'bg-green-500/20 text-green-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {myBet.status === 'pending' ? 'Ожидание' : myBet.status === 'cashed_out' ? `${myBet.cashout_multiplier?.toFixed(2)}x` : 'Потеря'}
-                  </div>
-                </div>
-              )}
-              {currentBets.filter(bet => bet.user_id !== userId).map((bet) => (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {allBets.map((bet) => (
                 <div
                   key={bet.id}
-                  className={`rounded-xl p-3 border-2 ${
-                    bet.status === 'pending'
-                      ? 'bg-slate-700/50 border-slate-600'
+                  className={`p-3 rounded-xl border-2 ${
+                    bet.user_id === userId
+                      ? 'bg-sky-600/20 border-sky-500'
                       : bet.status === 'cashed_out'
                       ? 'bg-green-600/20 border-green-500'
-                      : 'bg-red-600/20 border-red-500'
+                      : bet.status === 'lost'
+                      ? 'bg-red-600/20 border-red-500'
+                      : 'bg-slate-700/50 border-slate-600'
                   }`}
                 >
-                  <div className="mb-2 h-16 flex items-center justify-center bg-black/20 rounded-lg p-1">
-                    <img
-                      src={bet.item_image}
-                      alt={bet.item_name}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                  <p className="text-gray-300 text-xs font-bold mb-1">{bet.username}</p>
-                  <p className="text-white text-xs font-bold truncate mb-1">{bet.item_name}</p>
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-[7px] font-bold">V</span>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: bet.avatar_color }}
+                    >
+                      {bet.username[0]}
                     </div>
-                    <span className="text-white text-xs font-bold">{bet.bet_amount.toFixed(1)}</span>
-                  </div>
-                  <div className={`mt-2 px-2 py-1 rounded text-center text-xs font-bold ${
-                    bet.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                    bet.status === 'cashed_out' ? 'bg-green-500/20 text-green-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {bet.status === 'pending' ? 'Ожидание' : bet.status === 'cashed_out' ? `${bet.cashout_multiplier?.toFixed(2)}x` : 'Потеря'}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-bold text-sm truncate">{bet.username}</p>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-sky-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-[8px] font-bold">V</span>
+                        </div>
+                        <span className="text-gray-300 text-xs">{bet.bet_amount.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    {bet.status === 'cashed_out' && (
+                      <div className="text-right">
+                        <p className="text-green-400 font-bold text-sm">{bet.cashout_multiplier?.toFixed(2)}x</p>
+                        <p className="text-green-300 text-xs">{bet.winnings?.toFixed(1)}</p>
+                      </div>
+                    )}
+                    {bet.status === 'pending' && (
+                      <div className="text-yellow-400 text-xs font-bold">Ждет</div>
+                    )}
+                    {bet.status === 'lost' && (
+                      <div className="text-red-400 text-xs font-bold">Потеря</div>
+                    )}
                   </div>
                 </div>
               ))}
+              {allBets.length === 0 && (
+                <p className="text-gray-500 text-center py-8">Пока нет ставок</p>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-purple-500/30 overflow-hidden shadow-xl">
           <h3 className="text-white font-bold text-lg px-6 py-4 border-b border-slate-700 bg-slate-800/50">
-            Выберите предмет для ставки
+            Выберите подарок
           </h3>
           {inventory.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="text-slate-500" size={40} />
-              </div>
-              <p className="text-gray-400 text-lg mb-2">В вашем инвентаре нет предметов</p>
-              <p className="text-gray-500 text-sm">Откройте кейсы на главной странице</p>
+              <Plane className="text-slate-600 mx-auto mb-4" size={48} />
+              <p className="text-gray-400 text-lg mb-2">В вашем инвентаре нет подарков</p>
+              <p className="text-gray-500">Откройте кейсы на главной странице</p>
             </div>
           ) : (
-            <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="p-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {inventory.map((item, idx) => {
                 const rarityStyle = getRarityStyle(item.rarity);
-                const isSelected = selectedItem?.id === item.id || nextRoundItem?.id === item.id;
-                const canSelect = (gameState === 'waiting' && !selectedItem) || (gameState === 'playing' && !nextRoundItem);
+                const isSelected = selectedItem?.id === item.id;
+                const canSelect = !myBet && gameState === 'waiting';
 
                 return (
                   <div
-                    key={`crash-${idx}`}
+                    key={`item-${idx}`}
                     onClick={() => {
                       if (canSelect) {
-                        handleSelectItem(item);
+                        setSelectedItem(item);
                       }
                     }}
                     className={`group ${rarityStyle.bg} rounded-xl p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} transition-all ${
                       canSelect
-                        ? 'cursor-pointer hover:scale-105 hover:brightness-110 hover:shadow-2xl'
+                        ? 'cursor-pointer hover:scale-105 hover:brightness-110'
                         : 'opacity-50 cursor-not-allowed'
-                    } ${isSelected ? 'ring-4 ring-cyan-500 scale-105' : ''}`}
+                    } ${isSelected ? 'ring-4 ring-sky-500 scale-105' : ''}`}
                   >
                     <div className="mb-2 h-24 flex items-center justify-center bg-slate-950/40 rounded-lg p-2">
                       <img
@@ -834,8 +758,8 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
                       />
                     </div>
                     <p className="text-white text-xs font-bold truncate mb-1">{item.name}</p>
-                    <div className="flex items-center justify-center gap-1 mt-1">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-4 h-4 bg-sky-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-[8px] font-bold">V</span>
                       </div>
                       <span className="text-white text-xs font-bold">{item.price.toFixed(2)}</span>
