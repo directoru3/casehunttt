@@ -2,11 +2,18 @@ import { Case, Item } from '../lib/supabase';
 
 export const mockCases: Case[] = [
   {
-    id: '1',
+    id: 'free-gift',
     name: 'Free Gift',
     image_url: 'https://images.giftsbattle.com/case/giftsbattle_cursed_Case.png',
     price: 0,
     category: 'free'
+  },
+  {
+    id: '1',
+    name: 'Starter Pack',
+    image_url: 'https://images.giftsbattle.com/case/giftsbattle_newgift_500x500_2.png',
+    price: 1,
+    category: 'low'
   },
   {
     id: '2',
@@ -60,6 +67,15 @@ export const mockCases: Case[] = [
 ];
 
 export const mockItems: Record<string, Item[]> = {
+  'free-gift': [
+    { id: 'fg1', name: 'Free Coin', image_url: 'https://images.pexels.com/photos/1602726/pexels-photo-1602726.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'common', price: 0.1 },
+    { id: 'fg2', name: 'Gift Token', image_url: 'https://images.pexels.com/photos/3825517/pexels-photo-3825517.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'common', price: 0.2 },
+    { id: 'fg3', name: 'Lucky Charm', image_url: 'https://images.pexels.com/photos/2385477/pexels-photo-2385477.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'uncommon', price: 0.5 },
+    { id: 'fg4', name: 'Bonus Star', image_url: 'https://images.pexels.com/photos/1666073/pexels-photo-1666073.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'uncommon', price: 0.8 },
+    { id: 'fg5', name: 'Golden Gift', image_url: 'https://images.pexels.com/photos/844928/pexels-photo-844928.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'rare', price: 1.5 },
+    { id: 'fg6', name: 'Premium Token', image_url: 'https://images.pexels.com/photos/1121123/pexels-photo-1121123.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'epic', price: 3.0 },
+    { id: 'fg7', name: 'Mega Gift', image_url: 'https://images.pexels.com/photos/1616401/pexels-photo-1616401.jpeg?auto=compress&cs=tinysrgb&w=200', rarity: 'legendary', price: 5.0 }
+  ],
   '1': [
     { id: 'i1', name: 'Надгробный камень', image_url: 'https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/aa/Gravestone.webp', rarity: 'common', price: 1.2 },
     { id: 'i3', name: 'Бумажный самолетик', image_url: 'https://telegifter.ru/wp-content/themes/gifts/assets/img/gifts/aa/Plane.webp', rarity: 'rare', price: 5.8 }

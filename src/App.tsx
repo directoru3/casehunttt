@@ -9,6 +9,7 @@ import CaseOpenModal from './components/CaseOpenModal';
 import MultiCaseOpenModal from './components/MultiCaseOpenModal';
 import MultiCaseResultModal from './components/MultiCaseResultModal';
 import DepositModal from './components/DepositModal';
+import SecretCodeModal from './components/SecretCodeModal';
 import BottomNav from './components/BottomNav';
 import ProfilePage from './pages/ProfilePage';
 import UpgradePage from './pages/UpgradePage';
@@ -29,6 +30,7 @@ function App() {
   const [showMultiOpen, setShowMultiOpen] = useState(false);
   const [multiOpenResults, setMultiOpenResults] = useState<Item[] | null>(null);
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showSecretCode, setShowSecretCode] = useState(false);
   const [inventory, setInventory] = useState<Item[]>([]);
   const [balance, setBalance] = useState(0);
 
@@ -283,7 +285,13 @@ function App() {
                 <CaseCard
                   key={caseData.id}
                   caseData={caseData}
-                  onClick={() => setSelectedCase(caseData)}
+                  onClick={() => {
+                    if (caseData.id === 'free-gift') {
+                      setShowSecretCode(true);
+                    } else {
+                      setSelectedCase(caseData);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -316,8 +324,6 @@ function App() {
           removeItemFromInventory={removeItemFromInventory}
         />
       )}
-
-      <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
 
       {selectedCase && (
         <CaseOpenModal
@@ -356,6 +362,22 @@ function App() {
           currentBalance={balance}
         />
       )}
+
+      {showSecretCode && currentUser && (
+        <SecretCodeModal
+          onClose={() => setShowSecretCode(false)}
+          onSuccess={(caseId) => {
+            const freeCase = mockCases.find(c => c.id === caseId);
+            if (freeCase) {
+              setShowSecretCode(false);
+              setSelectedCase(freeCase);
+            }
+          }}
+          userId={String(currentUser.id)}
+        />
+      )}
+
+      <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
     </div>
   );
 }

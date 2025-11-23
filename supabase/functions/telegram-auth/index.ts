@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createHmac } from "node:crypto";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,30 +23,21 @@ interface AuthRequest {
 }
 
 function generateJWT(userId: number): string {
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-
+  const header = { alg: 'HS256', typ: 'JWT' };
   const payload = {
     sub: String(userId),
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)
   };
-
   const base64Header = btoa(JSON.stringify(header));
   const base64Payload = btoa(JSON.stringify(payload));
   const signature = `signature_${userId}_${Date.now()}`;
-
   return `${base64Header}.${base64Payload}.${signature}`;
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -56,7 +46,6 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { initData, user }: AuthRequest = await req.json();
-
     console.log('[TelegramAuth] Received auth request for user:', user?.id);
 
     if (!user || !user.id) {
@@ -88,45 +77,24 @@ Deno.serve(async (req: Request) => {
 
     if (existingUser) {
       console.log('[TelegramAuth] Existing user found, updating...');
-      const { error: updateError } = await supabase
-        .from('users')
-        .update(userData)
-        .eq('telegram_id', user.id);
-
-      if (updateError) {
-        console.error('[TelegramAuth] Failed to update user:', updateError);
-      } else {
-        console.log('[TelegramAuth] User updated successfully');
-      }
+      await supabase.from('users').update(userData).eq('telegram_id', user.id);
+      console.log('[TelegramAuth] User updated successfully');
     } else {
       console.log('[TelegramAuth] New user, creating account...');
-      const { error: insertError } = await supabase
-        .from('users')
-        .insert({
-          ...userData,
-          created_at: new Date().toISOString()
-        });
-
+      const { error: insertError } = await supabase.from('users').insert({ ...userData, created_at: new Date().toISOString() });
       if (insertError) {
         console.error('[TelegramAuth] Failed to create user:', insertError);
         throw new Error('Failed to create user account');
       }
 
-      console.log('[TelegramAuth] User created, initializing balance...');
-      const { error: balanceError } = await supabase
-        .from('user_balances')
-        .insert({
-          user_id: String(user.id),
-          balance: 100,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (balanceError) {
-        console.error('[TelegramAuth] Failed to create balance:', balanceError);
-      } else {
-        console.log('[TelegramAuth] Balance initialized with 100 TON (welcome bonus)');
-      }
+      console.log('[TelegramAuth] User created, initializing balance with 1 TON welcome bonus...');
+      await supabase.from('user_balances').insert({
+        user_id: String(user.id),
+        balance: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      console.log('[TelegramAuth] Balance initialized successfully');
     }
 
     const token = generateJWT(user.id);
@@ -145,27 +113,13 @@ Deno.serve(async (req: Request) => {
           isPremium: user.isPremium
         }
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[TelegramAuth] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'Authentication failed'
-      }),
-      {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+      JSON.stringify({ success: false, error: error.message || 'Authentication failed' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
