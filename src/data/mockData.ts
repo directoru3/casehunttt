@@ -3,7 +3,7 @@ import { Case, Item } from '../lib/supabase';
 export const mockCases: Case[] = [
   {
     id: '1',
-    name: 'Starter Pack',
+    name: 'Free Gift',
     image_url: 'https://images.giftsbattle.com/case/giftsbattle_cursed_Case.png',
     price: 0,
     category: 'free'
