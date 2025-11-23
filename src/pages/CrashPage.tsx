@@ -38,8 +38,8 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
   const [currentBets, setCurrentBets] = useState<CrashBet[]>([]);
   const [myBet, setMyBet] = useState<CrashBet | null>(null);
   const [userId] = useState(() => `user-${Math.random().toString(36).substr(2, 9)}`);
+  const [username] = useState(() => `Player${Math.floor(Math.random() * 9999)}`);
   const [countdown, setCountdown] = useState(10);
-  const gameLoopRef = useRef<NodeJS.Timeout>();
   const animationRef = useRef<number>();
 
   const generateCrashPoint = () => {
@@ -47,88 +47,129 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
   };
 
   const fetchCurrentBets = async (roundId: string) => {
-    const { data, error } = await supabase
-      .from('crash_bets')
-      .select('*')
-      .eq('round_id', roundId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('crash_bets')
+        .select('*')
+        .eq('round_id', roundId)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      const betsWithUsernames = await Promise.all(
-        data.map(async (bet) => {
-          const { data: profile } = await supabase
-            .from('crash_user_profiles')
-            .select('username')
-            .eq('user_id', bet.user_id)
-            .maybeSingle();
+      if (error) {
+        console.error('Error fetching bets:', error);
+        return;
+      }
 
-          return {
-            ...bet,
-            username: profile?.username || 'Anonymous',
-          } as CrashBet;
-        })
-      );
-      setCurrentBets(betsWithUsernames);
+      if (data) {
+        const betsWithUsernames = await Promise.all(
+          data.map(async (bet) => {
+            const { data: profile } = await supabase
+              .from('crash_user_profiles')
+              .select('username')
+              .eq('user_id', bet.user_id)
+              .maybeSingle();
+
+            return {
+              ...bet,
+              username: profile?.username || 'Anonymous',
+            } as CrashBet;
+          })
+        );
+        setCurrentBets(betsWithUsernames);
+      }
+    } catch (err) {
+      console.error('Exception fetching bets:', err);
     }
   };
 
   const createNewRound = async () => {
-    const newCrashPoint = generateCrashPoint();
-    setCrashPoint(newCrashPoint);
+    try {
+      const newCrashPoint = generateCrashPoint();
+      setCrashPoint(newCrashPoint);
 
-    const { data, error } = await supabase
-      .from('crash_rounds')
-      .insert({
-        crash_multiplier: newCrashPoint,
-        status: 'waiting',
-      })
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('crash_rounds')
+        .insert({
+          crash_multiplier: newCrashPoint,
+          status: 'waiting',
+        })
+        .select()
+        .single();
 
-    if (!error && data) {
-      setCurrentRoundId(data.id);
-      return data.id;
+      if (error) {
+        console.error('Error creating round:', error);
+        return null;
+      }
+
+      if (data) {
+        console.log('Created new round:', data.id);
+        setCurrentRoundId(data.id);
+        return data.id;
+      }
+      return null;
+    } catch (err) {
+      console.error('Exception creating round:', err);
+      return null;
     }
-    return null;
   };
 
   const startRound = async (roundId: string) => {
-    await supabase
-      .from('crash_rounds')
-      .update({ status: 'active', started_at: new Date().toISOString() })
-      .eq('id', roundId);
+    try {
+      console.log('Starting round:', roundId);
+      await supabase
+        .from('crash_rounds')
+        .update({ status: 'active', started_at: new Date().toISOString() })
+        .eq('id', roundId);
 
-    setGameState('playing');
-    setMultiplier(1.0);
-    animateGraph(roundId);
+      setGameState('playing');
+      setMultiplier(1.0);
+      animateGraph(roundId);
+    } catch (err) {
+      console.error('Exception starting round:', err);
+    }
   };
 
   const endRound = async (roundId: string, finalMultiplier: number) => {
-    await supabase
-      .from('crash_rounds')
-      .update({
-        status: 'crashed',
-        ended_at: new Date().toISOString(),
-        crash_multiplier: finalMultiplier
-      })
-      .eq('id', roundId);
+    try {
+      console.log('Ending round:', roundId, 'at', finalMultiplier);
 
-    const { data: bets } = await supabase
-      .from('crash_bets')
-      .select('*')
-      .eq('round_id', roundId)
-      .eq('status', 'pending');
+      await supabase
+        .from('crash_rounds')
+        .update({
+          status: 'crashed',
+          ended_at: new Date().toISOString(),
+          crash_multiplier: finalMultiplier
+        })
+        .eq('id', roundId);
 
-    if (bets) {
-      for (const bet of bets) {
-        await supabase
-          .from('crash_bets')
-          .update({ status: 'lost' })
-          .eq('id', bet.id);
+      const { data: bets } = await supabase
+        .from('crash_bets')
+        .select('*')
+        .eq('round_id', roundId)
+        .eq('status', 'pending');
+
+      if (bets) {
+        for (const bet of bets) {
+          await supabase
+            .from('crash_bets')
+            .update({ status: 'lost' })
+            .eq('id', bet.id);
+        }
       }
-    }
 
-    setGameState('crashed');
+      setGameState('crashed');
+
+      if (myBet && myBet.status === 'pending') {
+        console.log('Player lost, returning item to inventory');
+        setMyBet({ ...myBet, status: 'lost' });
+        if (selectedItem) {
+          addItemToInventory(selectedItem);
+        }
+      }
+
+      await fetchCurrentBets(roundId);
+    } catch (err) {
+      console.error('Exception ending round:', err);
+    }
   };
 
   const animateGraph = (roundId: string) => {
@@ -144,13 +185,6 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
       if (currentMultiplier >= crashPoint || progress >= 1) {
         setMultiplier(crashPoint);
         endRound(roundId, crashPoint);
-
-        if (myBet && myBet.status === 'pending') {
-          setMyBet({ ...myBet, status: 'lost' });
-          if (selectedItem) {
-            addItemToInventory(selectedItem);
-          }
-        }
         return;
       }
 
@@ -215,97 +249,124 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
   };
 
   const handleBet = async (item: Item) => {
-    if (gameState !== 'waiting' || !currentRoundId) return;
+    if (gameState !== 'waiting' || !currentRoundId || selectedItem) {
+      console.log('Cannot bet:', { gameState, currentRoundId, selectedItem });
+      return;
+    }
 
+    console.log('Placing bet with item:', item.name);
     setSelectedItem(item);
     setBetAmount(item.price);
 
-    const { data: profile } = await supabase
-      .from('crash_user_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    try {
+      const { data: profile } = await supabase
+        .from('crash_user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (!profile) {
-      await supabase.from('crash_user_profiles').insert({
-        user_id: userId,
-        username: `Player${Math.floor(Math.random() * 9999)}`,
-      });
-    }
+      if (!profile) {
+        console.log('Creating user profile');
+        await supabase.from('crash_user_profiles').insert({
+          user_id: userId,
+          username: username,
+        });
+      }
 
-    const { data: betData } = await supabase
-      .from('crash_bets')
-      .insert({
-        round_id: currentRoundId,
-        user_id: userId,
-        item_id: item.id,
-        item_name: item.name,
-        item_image: item.image_url,
-        item_rarity: item.rarity,
-        bet_amount: item.price,
-        status: 'pending',
-      })
-      .select()
-      .single();
+      console.log('Inserting bet into database');
+      const { data: betData, error } = await supabase
+        .from('crash_bets')
+        .insert({
+          round_id: currentRoundId,
+          user_id: userId,
+          item_id: item.id,
+          item_name: item.name,
+          item_image: item.image_url,
+          item_rarity: item.rarity,
+          bet_amount: item.price,
+          status: 'pending',
+        })
+        .select()
+        .single();
 
-    if (betData) {
-      const newBet: CrashBet = {
-        ...betData,
-        username: 'You',
-      };
-      setMyBet(newBet);
-      await fetchCurrentBets(currentRoundId);
+      if (error) {
+        console.error('Error creating bet:', error);
+        return;
+      }
+
+      if (betData) {
+        console.log('Bet created successfully:', betData.id);
+        const newBet: CrashBet = {
+          ...betData,
+          username: username,
+        };
+        setMyBet(newBet);
+        await fetchCurrentBets(currentRoundId);
+      }
+    } catch (err) {
+      console.error('Exception placing bet:', err);
     }
   };
 
   const handleCashout = async () => {
-    if (gameState !== 'playing' || !myBet || !selectedItem || !currentRoundId) return;
+    if (gameState !== 'playing' || !myBet || !selectedItem || !currentRoundId) {
+      console.log('Cannot cashout:', { gameState, myBet, selectedItem, currentRoundId });
+      return;
+    }
 
+    console.log('Cashing out at', multiplier);
     const winnings = selectedItem.price * multiplier;
 
-    await supabase
-      .from('crash_bets')
-      .update({
-        status: 'cashed_out',
-        cashout_multiplier: multiplier,
-        winnings: winnings,
-      })
-      .eq('id', myBet.id);
+    try {
+      await supabase
+        .from('crash_bets')
+        .update({
+          status: 'cashed_out',
+          cashout_multiplier: multiplier,
+          winnings: winnings,
+        })
+        .eq('id', myBet.id);
 
-    setWonAmount(winnings);
-    setCashoutMultiplier(multiplier);
-    setBalance(balance + winnings);
+      setWonAmount(winnings);
+      setCashoutMultiplier(multiplier);
+      setBalance(balance + winnings);
 
-    const wonItem: Item = {
-      id: `won-${Date.now()}`,
-      name: `${selectedItem.name} (${multiplier.toFixed(2)}x)`,
-      image_url: selectedItem.image_url,
-      rarity: selectedItem.rarity,
-      price: winnings,
-    };
-    addItemToInventory(wonItem);
+      const wonItem: Item = {
+        id: `won-${Date.now()}`,
+        name: `${selectedItem.name} (${multiplier.toFixed(2)}x)`,
+        image_url: selectedItem.image_url,
+        rarity: selectedItem.rarity,
+        price: winnings,
+      };
+      addItemToInventory(wonItem);
 
-    setMyBet({ ...myBet, status: 'cashed_out', cashout_multiplier: multiplier, winnings });
+      setMyBet({ ...myBet, status: 'cashed_out', cashout_multiplier: multiplier, winnings });
+      await fetchCurrentBets(currentRoundId);
+    } catch (err) {
+      console.error('Exception cashing out:', err);
+    }
   };
 
   useEffect(() => {
+    console.log('Initializing crash game');
     const initGame = async () => {
       const roundId = await createNewRound();
       if (roundId) {
         setCountdown(10);
+        await fetchCurrentBets(roundId);
       }
     };
 
     initGame();
 
     return () => {
-      if (gameLoopRef.current) clearInterval(gameLoopRef.current);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, []);
 
   useEffect(() => {
     if (gameState === 'waiting' && currentRoundId) {
+      console.log('Starting countdown from', countdown);
       const countdownInterval = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -319,6 +380,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
 
       return () => clearInterval(countdownInterval);
     } else if (gameState === 'crashed') {
+      console.log('Round crashed, resetting in 3 seconds');
       const resetTimeout = setTimeout(async () => {
         setMyBet(null);
         setSelectedItem(null);
@@ -332,6 +394,7 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
         if (roundId) {
           setGameState('waiting');
           setCountdown(10);
+          await fetchCurrentBets(roundId);
         }
       }, 3000);
 
@@ -396,19 +459,19 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
               <div className="text-center">
                 {wonAmount ? (
                   <>
-                    <p className="text-green-400 text-4xl font-bold mb-2">🎉 ВЫИГРЫШ! 🎉</p>
+                    <p className="text-green-400 text-4xl font-bold mb-2">ВЫИГРЫШ!</p>
                     <p className="text-white text-3xl mb-2">+{wonAmount.toFixed(2)} TON</p>
                     <p className="text-gray-300">Коэффициент: {cashoutMultiplier?.toFixed(2)}x</p>
                   </>
                 ) : myBet ? (
                   <>
-                    <p className="text-red-400 text-4xl font-bold mb-2">💥 ОБРУШЕНИЕ! 💥</p>
+                    <p className="text-red-400 text-4xl font-bold mb-2">ОБРУШЕНИЕ!</p>
                     <p className="text-white text-xl">Предмет возвращен в инвентарь</p>
                     <p className="text-gray-300 text-sm mt-2">На коэффициенте {crashPoint.toFixed(2)}x</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-red-400 text-4xl font-bold mb-2">💥 ОБРУШЕНИЕ! 💥</p>
+                    <p className="text-red-400 text-4xl font-bold mb-2">ОБРУШЕНИЕ!</p>
                     <p className="text-gray-300 text-sm mt-2">На коэффициенте {crashPoint.toFixed(2)}x</p>
                   </>
                 )}
@@ -471,16 +534,16 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
           </div>
         </div>
 
-        {gameState === 'playing' && myBet && (
+        {gameState === 'playing' && myBet && myBet.status === 'pending' && (
           <button
             onClick={handleCashout}
             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 rounded-2xl transition-all text-xl shadow-2xl hover:shadow-green-500/50 hover:scale-105 transform border border-green-400/50 mb-8"
           >
-            💰 Забрать выигрыш ({(betAmount! * multiplier).toFixed(2)} TON)
+            Забрать выигрыш ({(betAmount! * multiplier).toFixed(2)} TON)
           </button>
         )}
 
-        {currentBets.length > 0 && (
+        {(currentBets.length > 0 || myBet) && (
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 overflow-hidden mb-8">
             <h3 className="text-white font-bold text-lg px-6 py-4 border-b border-slate-700">
               Ставки игроков ({currentBets.length + (myBet ? 1 : 0)})
@@ -558,26 +621,28 @@ export default function CrashPage({ inventory, balance, setBalance, addItemToInv
           {inventory.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-400">В вашем инвентаре нет предметов</p>
+              <p className="text-gray-500 text-sm mt-2">Откройте кейсы на главной странице</p>
             </div>
           ) : (
             <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {inventory.map((item, idx) => {
                 const rarityStyle = getRarityStyle(item.rarity);
                 const isSelected = selectedItem?.id === item.id;
+                const canBet = gameState === 'waiting' && !selectedItem;
 
                 return (
                   <div
                     key={`crash-${idx}`}
                     onClick={() => {
-                      if (gameState === 'waiting' && !selectedItem) {
+                      if (canBet) {
                         handleBet(item);
                       }
                     }}
                     className={`group ${rarityStyle.bg} rounded-xl p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} transition-all ${
-                      gameState === 'waiting' && !selectedItem
-                        ? 'cursor-pointer hover:scale-110'
+                      canBet
+                        ? 'cursor-pointer hover:scale-105 hover:brightness-110'
                         : 'opacity-50 cursor-not-allowed'
-                    } ${isSelected ? 'ring-4 ring-cyan-500 scale-110' : ''}`}
+                    } ${isSelected ? 'ring-4 ring-cyan-500 scale-105' : ''}`}
                   >
                     <div className="mb-2 h-20 overflow-hidden rounded-lg bg-black/20">
                       <img
