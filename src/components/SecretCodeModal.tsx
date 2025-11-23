@@ -45,10 +45,14 @@ export default function SecretCodeModal({ onClose, onSuccess, userId }: SecretCo
       if (data.success) {
         setSuccess(true);
         setTimeout(() => {
-          onSuccess(data.caseId, data.usesLeft);
+          onSuccess(data.caseId, 0);
         }, 2000);
       } else {
-        setError(data.error || 'Invalid code');
+        if (data.alreadyUsed) {
+          setError(data.usedAt ? `Already used on ${data.usedAt}` : 'You have already used this code');
+        } else {
+          setError(data.error || 'Invalid code');
+        }
       }
     } catch (err) {
       setError('Failed to verify code. Please try again.');
@@ -88,8 +92,9 @@ export default function SecretCodeModal({ onClose, onSuccess, userId }: SecretCo
             <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
               <Sparkles size={48} className="text-green-400" />
             </div>
-            <h3 className="text-2xl font-bold text-green-400 mb-2">Success!</h3>
-            <p className="text-gray-300">Your free case has been activated</p>
+            <h3 className="text-2xl font-bold text-green-400 mb-2">Secret Code Activated!</h3>
+            <p className="text-gray-300">Your free case is ready to open</p>
+            <p className="text-yellow-400 text-sm mt-2">⚠️ This code can only be used once</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,8 +108,8 @@ export default function SecretCodeModal({ onClose, onSuccess, userId }: SecretCo
                 disabled={isLoading}
                 maxLength={20}
               />
-              <p className="text-gray-500 text-xs mt-2 text-center">
-                Up to 100 uses per user
+              <p className="text-yellow-400 text-xs mt-2 text-center font-semibold">
+                ⚠️ One-time use only per user
               </p>
             </div>
 
@@ -150,7 +155,7 @@ export default function SecretCodeModal({ onClose, onSuccess, userId }: SecretCo
           <ul className="space-y-1 text-gray-400 text-xs">
             <li>• Enter your secret code above</li>
             <li>• Get instant access to Free Gift case</li>
-            <li>• Each code can be used 100 times per user</li>
+            <li>• ⚠️ Each code can only be used once</li>
             <li>• Win exclusive items from the free case!</li>
           </ul>
         </div>

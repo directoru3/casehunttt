@@ -274,13 +274,13 @@ function App() {
             <div className="mb-6 flex justify-end">
               <button
                 onClick={() => setShowMultiOpen(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-purple-500/50"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:scale-95 text-white font-bold py-3 px-4 md:px-6 rounded-xl transition-all shadow-lg hover:shadow-purple-500/50 text-sm md:text-base"
               >
                 🎁 Multi-Open (Up to 5)
               </button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filteredCases.map((caseData) => (
                 <CaseCard
                   key={caseData.id}

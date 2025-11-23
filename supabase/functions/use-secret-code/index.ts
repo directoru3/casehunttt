@@ -14,10 +14,7 @@ interface UseCodeRequest {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -32,6 +29,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const codeUpper = code.toUpperCase().trim();
+    console.log('[SecretCode] Checking code:', codeUpper, 'for user:', userId);
 
     const { data: secretCode, error: codeError } = await supabase
       .from('secret_codes')
@@ -41,45 +39,36 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (codeError || !secretCode) {
+      console.log('[SecretCode] Invalid or inactive code');
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid or inactive code' }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { count, error: countError } = await supabase
+    const { data: existingUse, error: checkError } = await supabase
       .from('secret_code_uses')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('user_id', userId)
-      .eq('code', codeUpper);
+      .eq('code', codeUpper)
+      .maybeSingle();
 
-    if (countError) {
-      throw new Error('Failed to check usage count');
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('[SecretCode] Error checking usage:', checkError);
+      throw new Error('Failed to check code usage');
     }
 
-    const usesCount = count || 0;
-
-    if (usesCount >= secretCode.max_uses_per_user) {
+    if (existingUse) {
+      console.log('[SecretCode] Code already used by user');
+      const usedDate = new Date(existingUse.used_at).toLocaleDateString();
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Maximum uses reached for this code',
-          usesLeft: 0,
-          maxUses: secretCode.max_uses_per_user
+          error: 'You have already used this code',
+          alreadyUsed: true,
+          usedAt: usedDate
         }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -92,37 +81,36 @@ Deno.serve(async (req: Request) => {
       });
 
     if (insertError) {
+      console.error('[SecretCode] Failed to record usage:', insertError);
+      if (insertError.code === '23505') {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'You have already used this code',
+            alreadyUsed: true
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       throw new Error('Failed to record code usage');
     }
 
-    const usesLeft = secretCode.max_uses_per_user - usesCount - 1;
+    console.log('[SecretCode] Code activated successfully');
 
     return new Response(
       JSON.stringify({
         success: true,
         caseId: secretCode.case_id,
-        usesLeft,
-        maxUses: secretCode.max_uses_per_user,
-        message: `Free case activated! ${usesLeft} uses remaining`
+        message: 'Secret Code Activated!',
+        isFirstUse: true
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Secret code error:', error);
+    console.error('[SecretCode] Error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+      JSON.stringify({ success: false, error: error.message || 'Failed to use code' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

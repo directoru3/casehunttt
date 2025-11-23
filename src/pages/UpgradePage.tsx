@@ -81,13 +81,15 @@ export default function UpgradePage({ inventory, onUpgrade }: UpgradePageProps) 
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pb-24">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-bold mb-6 transition-all shadow-lg hover:shadow-xl">
-            ВОЙТИ ЧЕРЕЗ TELEGRAM
-          </button>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
-            Апгрейд NFT
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
+            Upgrade NFT
           </h1>
-          <p className="text-gray-400">Улучшите ваши подарки на более ценные!</p>
+          <p className="text-gray-400 text-sm md:text-base">Улучшите ваши подарки на более ценные!</p>
+          <div className="mt-4 bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-xl p-4 max-w-2xl mx-auto">
+            <p className="text-gray-300 text-sm">
+              💡 Выберите предмет из инвентаря и попробуйте улучшить его на более ценный!
+            </p>
+          </div>
         </div>
 
         {isUpgrading && (
