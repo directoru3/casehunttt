@@ -19,6 +19,7 @@ import CrashPage from './pages/CrashPage';
 import { mockCases, mockItems } from './data/mockData';
 import { Case, Item } from './lib/supabase';
 import { telegramAuth, TelegramUser } from './utils/telegramAuth';
+import { balanceManager } from './utils/balanceManager';
 
 type Page = 'main' | 'profile' | 'upgrade' | 'crash';
 
@@ -102,25 +103,12 @@ function App() {
       setInventory(JSON.parse(savedInventory));
     }
 
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-balance`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ userId: userIdStr }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setBalance(data.balance || 0);
-      }
-    } catch (error) {
-      console.error('Failed to load user balance:', error);
+    const result = await balanceManager.getBalance(userIdStr);
+    if (result.success) {
+      setBalance(result.balance);
+      localStorage.setItem(`balance_${userIdStr}`, result.balance.toString());
+    } else {
+      console.error('Failed to load user balance:', result.error);
       const savedBalance = localStorage.getItem(`balance_${userIdStr}`);
       if (savedBalance) {
         setBalance(parseFloat(savedBalance));
@@ -128,11 +116,13 @@ function App() {
     }
   };
 
-  const saveToLocalStorage = (newInventory: Item[], newBalance: number) => {
+  const saveToLocalStorage = async (newInventory: Item[], newBalance: number) => {
     if (currentUser) {
       const userIdStr = String(currentUser.id);
       localStorage.setItem(`inventory_${userIdStr}`, JSON.stringify(newInventory));
       localStorage.setItem(`balance_${userIdStr}`, newBalance.toString());
+
+      await balanceManager.updateBalance(userIdStr, newBalance);
     }
   };
 
@@ -212,9 +202,9 @@ function App() {
     }
   };
 
-  const handleDeposit = (newBalance: number) => {
+  const handleDeposit = async (newBalance: number) => {
     setBalance(newBalance);
-    saveToLocalStorage(inventory, newBalance);
+    await saveToLocalStorage(inventory, newBalance);
   };
 
   const handleSellItem = (item: Item, inventoryIndex: number) => {
