@@ -6,6 +6,7 @@ import AnimatedNFT from './AnimatedNFT';
 import TonIcon from './TonIcon';
 import { FortuneWheel } from './FortuneWheel';
 import { telegramAuth } from '../utils/telegramAuth';
+import ErrorBoundary from './ErrorBoundary';
 
 interface CaseOpenModalProps {
   caseData: Case;
@@ -33,12 +34,14 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
   const hasEnoughBalance = balance >= totalCost;
   const insufficientFunds = !hasEnoughBalance;
 
-  const wheelItems = items.map(item => ({
-    name: item.name,
-    rarity: item.rarity,
-    image: item.image_url,
-    color: getRarityStyle(item.rarity).border
-  }));
+  const wheelItems = Array.isArray(items)
+    ? items.filter(item => item && item.name && item.rarity && item.image_url).map(item => ({
+        name: item.name,
+        rarity: item.rarity,
+        image: item.image_url,
+        color: getRarityStyle(item.rarity).border
+      }))
+    : [];
 
   const handleSpin = async () => {
     if (spinning || insufficientFunds) return;
@@ -70,20 +73,28 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
         }
       );
 
+      if (!response.ok) {
+        throw new Error('Failed to open case');
+      }
+
       const data = await response.json();
-      const winners = data.winners;
+      const winners = data.winners || [];
+
+      if (!Array.isArray(winners) || winners.length === 0) {
+        throw new Error('No winners received');
+      }
 
       if (openCount === 1) {
         const winner = winners[0];
         const winnerIndex = items.findIndex(item => item.id === winner.id);
-        setWonIndex(winnerIndex);
+        setWonIndex(winnerIndex >= 0 ? winnerIndex : 0);
         setWonItem(winner);
       } else {
         for (let i = 0; i < winners.length; i++) {
           const winner = winners[i];
           const winnerIndex = items.findIndex(item => item.id === winner.id);
 
-          setWonIndex(winnerIndex);
+          setWonIndex(winnerIndex >= 0 ? winnerIndex : 0);
           setWonItem(winner);
 
           if (i < winners.length - 1) {
@@ -94,6 +105,7 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
     } catch (error) {
       console.error('Error opening case:', error);
       setSpinning(false);
+      alert('Failed to open case. Please try again.');
     }
   };
 
@@ -164,12 +176,14 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
           </div>
 
           <div className="relative mb-8 flex items-center justify-center py-4">
-            <FortuneWheel
-              items={wheelItems}
-              winningIndex={wonIndex}
-              isSpinning={spinning}
-              onSpinComplete={handleSpinComplete}
-            />
+            <ErrorBoundary>
+              <FortuneWheel
+                items={wheelItems}
+                winningIndex={wonIndex}
+                isSpinning={spinning}
+                onSpinComplete={handleSpinComplete}
+              />
+            </ErrorBoundary>
           </div>
 
           {wonItem && showDecision && (

@@ -31,14 +31,15 @@ const rarityGlows: Record<string, string> = {
 };
 
 export const FortuneWheel: React.FC<FortuneWheelProps> = ({
-  items,
-  winningIndex,
+  items = [],
+  winningIndex = 0,
   isSpinning,
   onSpinComplete
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [renderError, setRenderError] = useState(false);
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>();
   const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
@@ -56,7 +57,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       }
     };
 
-    items.forEach(item => {
+    items.forEach((item, index) => {
+      if (!item || typeof item !== 'object') {
+        console.warn(`Invalid item at index ${index}:`, item);
+        loadedCountRef.current++;
+        checkAllLoaded();
+        return;
+      }
+
       if (!item.image) {
         loadedCountRef.current++;
         checkAllLoaded();
@@ -127,19 +135,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }, [isSpinning, winningIndex, items.length, onSpinComplete]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    if (items.length === 0) return;
+      if (!Array.isArray(items) || items.length === 0) return;
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 15;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 15;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 20;
@@ -153,6 +162,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     const segmentAngle = (2 * Math.PI) / items.length;
 
     items.forEach((item, index) => {
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+
       const startAngle = index * segmentAngle - Math.PI / 2;
       const endAngle = startAngle + segmentAngle;
 
@@ -181,21 +194,28 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.shadowBlur = 0;
       ctx.stroke();
 
-      const img = imagesRef.current[item.image];
-      if (img && img.complete) {
-        ctx.save();
-        ctx.rotate(startAngle + segmentAngle / 2);
-        const imgSize = 50;
-        const imgX = radius * 0.65 - imgSize / 2;
-        const imgY = -imgSize / 2;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(radius * 0.65, 0, imgSize / 2 + 2, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
-        ctx.restore();
+      if (item && item.image) {
+        const img = imagesRef.current[item.image];
+        if (img && img.complete && img.naturalWidth > 0) {
+          try {
+            ctx.save();
+            ctx.rotate(startAngle + segmentAngle / 2);
+            const imgSize = 50;
+            const imgX = radius * 0.65 - imgSize / 2;
+            const imgY = -imgSize / 2;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(radius * 0.65, 0, imgSize / 2 + 2, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+            ctx.restore();
+          } catch (err) {
+            console.error('Error drawing image:', err);
+            ctx.restore();
+          }
+        }
       }
     });
 
@@ -243,7 +263,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 4;
     ctx.fillText('SPIN', centerX, centerY);
-
+    } catch (error) {
+      console.error('Error rendering wheel:', error);
+      setRenderError(true);
+    }
   }, [items, rotation, imagesLoaded]);
 
   const adjustBrightness = (color: string, percent: number): string => {
@@ -259,6 +282,22 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       (B < 255 ? (B < 1 ? 0 : B) : 255)
     ).toString(16).slice(1);
   };
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return (
+      <div className="relative flex items-center justify-center w-[400px] h-[400px]">
+        <p className="text-gray-400">Loading wheel...</p>
+      </div>
+    );
+  }
+
+  if (renderError) {
+    return (
+      <div className="relative flex items-center justify-center w-[400px] h-[400px]">
+        <p className="text-red-400">Error loading wheel</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex items-center justify-center">

@@ -6,6 +6,7 @@ import AnimatedNFT from './AnimatedNFT';
 import TonIcon from './TonIcon';
 import { FortuneWheel } from './FortuneWheel';
 import { telegramAuth } from '../utils/telegramAuth';
+import ErrorBoundary from './ErrorBoundary';
 
 interface EnhancedCaseOpenModalProps {
   caseData: Case;
@@ -44,12 +45,14 @@ export default function EnhancedCaseOpenModal({
   const hasEnoughBalance = balance >= totalCost;
   const insufficientFunds = !hasEnoughBalance;
 
-  const wheelItems = items.map(item => ({
-    name: item.name,
-    rarity: item.rarity,
-    image: item.image_url,
-    color: getRarityStyle(item.rarity).border
-  }));
+  const wheelItems = Array.isArray(items)
+    ? items.filter(item => item && item.name && item.rarity && item.image_url).map(item => ({
+        name: item.name,
+        rarity: item.rarity,
+        image: item.image_url,
+        color: getRarityStyle(item.rarity).border
+      }))
+    : [];
 
   const handleSpin = async () => {
     if (spinning || insufficientFunds) return;
@@ -206,45 +209,47 @@ export default function EnhancedCaseOpenModal({
           </div>
 
           {showWheels && wheelItems.length > 0 && (
-            <div
-              className={`flex gap-6 mb-8 items-center justify-center transition-all duration-500 ${
-                wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              }`}
-            >
-              <div className="flex-shrink-0 animate-fade-in">
-                <FortuneWheel
-                  items={wheelItems}
-                  winningIndex={wonIndexes[0] !== undefined ? wonIndexes[0] : 0}
-                  isSpinning={spinning && currentSpinIndex === 0}
-                  onSpinComplete={handleSpinComplete}
-                />
-              </div>
-
-              {openCount > 1 && (
-                <div className="flex flex-col gap-4 justify-center">
-                  {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
-                    <div
-                      key={index}
-                      className="mini-wheel-container animate-mini-wheel-in"
-                      style={{
-                        animationDelay: `${index * 100}ms`,
-                        width: '120px',
-                        height: '120px'
-                      }}
-                    >
-                      <div style={{ transform: 'scale(0.3)', transformOrigin: 'center' }}>
-                        <FortuneWheel
-                          items={wheelItems}
-                          winningIndex={wonIndexes[index] !== undefined ? wonIndexes[index] : 0}
-                          isSpinning={spinning && currentSpinIndex === index}
-                          onSpinComplete={handleSpinComplete}
-                        />
-                      </div>
-                    </div>
-                  ))}
+            <ErrorBoundary>
+              <div
+                className={`flex gap-6 mb-8 items-center justify-center transition-all duration-500 ${
+                  wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+              >
+                <div className="flex-shrink-0 animate-fade-in">
+                  <FortuneWheel
+                    items={wheelItems}
+                    winningIndex={wonIndexes[0] !== undefined ? wonIndexes[0] : 0}
+                    isSpinning={spinning && currentSpinIndex === 0}
+                    onSpinComplete={handleSpinComplete}
+                  />
                 </div>
-              )}
-            </div>
+
+                {openCount > 1 && (
+                  <div className="flex flex-col gap-4 justify-center">
+                    {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
+                      <div
+                        key={index}
+                        className="mini-wheel-container animate-mini-wheel-in"
+                        style={{
+                          animationDelay: `${index * 100}ms`,
+                          width: '120px',
+                          height: '120px'
+                        }}
+                      >
+                        <div style={{ transform: 'scale(0.3)', transformOrigin: 'center' }}>
+                          <FortuneWheel
+                            items={wheelItems}
+                            winningIndex={wonIndexes[index] !== undefined ? wonIndexes[index] : 0}
+                            isSpinning={spinning && currentSpinIndex === index}
+                            onSpinComplete={handleSpinComplete}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ErrorBoundary>
           )}
 
           {showDecision && wonItems.length > 0 && (
