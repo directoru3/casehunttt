@@ -101,10 +101,16 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   useEffect(() => {
     if (!isSpinning) {
       setHighlightedSegment(-1);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
+      }
+      startTimeRef.current = undefined;
       return;
     }
 
     setIsAnticipating(false);
+    startTimeRef.current = undefined;
 
     const duration = 5000;
     const extraSpins = 5;
@@ -116,6 +122,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     };
 
     const animate = (currentTime: number) => {
+      if (!isSpinning) {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = undefined;
+        }
+        return;
+      }
+
       if (!startTimeRef.current) {
         startTimeRef.current = currentTime;
       }
@@ -136,8 +150,13 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
+        setRotation(targetRotation);
         startTimeRef.current = undefined;
         setHighlightedSegment(winningIndex);
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = undefined;
+        }
         setTimeout(() => {
           onSpinComplete();
         }, 500);
@@ -149,6 +168,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
     };
   }, [isSpinning, winningIndex, items.length, onSpinComplete]);
@@ -198,28 +218,39 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
 
       if (isHighlighted) {
-        gradient.addColorStop(0, adjustBrightness(color, 80));
-        gradient.addColorStop(0.6, adjustBrightness(color, 40));
-        gradient.addColorStop(1, color);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.2, addIceEffect(color, 100));
+        gradient.addColorStop(0.6, addIceEffect(color, 50));
+        gradient.addColorStop(0.9, color);
+        gradient.addColorStop(1, adjustBrightness(color, -20));
       } else {
-        gradient.addColorStop(0, adjustBrightness(color, 40));
-        gradient.addColorStop(0.6, color);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(0.3, addIceEffect(color, 40));
+        gradient.addColorStop(0.7, color);
         gradient.addColorStop(1, adjustBrightness(color, -40));
       }
 
       ctx.fillStyle = gradient;
       ctx.fill();
 
+      const iceOverlay = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+      iceOverlay.addColorStop(0, 'rgba(200, 230, 255, 0.4)');
+      iceOverlay.addColorStop(0.5, 'rgba(150, 200, 255, 0.2)');
+      iceOverlay.addColorStop(1, 'rgba(100, 180, 255, 0.05)');
+      ctx.fillStyle = iceOverlay;
+      ctx.fill();
+
       const glowColor = rarityGlows[item.rarity] || 'rgba(107, 116, 128, 0.4)';
-      ctx.strokeStyle = isHighlighted ? adjustBrightness(color, 60) : glowColor;
-      ctx.lineWidth = isHighlighted ? 5 : 3;
-      ctx.shadowColor = isHighlighted ? color : glowColor;
-      ctx.shadowBlur = isHighlighted ? 25 : 15;
+      ctx.strokeStyle = isHighlighted ? 'rgba(200, 230, 255, 0.9)' : 'rgba(180, 220, 255, 0.5)';
+      ctx.lineWidth = isHighlighted ? 6 : 4;
+      ctx.shadowColor = isHighlighted ? '#FFFFFF' : 'rgba(150, 200, 255, 0.6)';
+      ctx.shadowBlur = isHighlighted ? 30 : 20;
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.lineWidth = 2;
-      ctx.shadowBlur = 0;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(200, 230, 255, 0.8)';
       ctx.stroke();
 
       if (item && item.image) {
@@ -266,30 +297,35 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     ctx.shadowBlur = 0;
     ctx.stroke();
 
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+    ctx.shadowBlur = 40;
+    ctx.shadowColor = 'rgba(150, 220, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(centerX, centerY, 45, 0, 2 * Math.PI);
     const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 45);
-    centerGradient.addColorStop(0, '#3B82F6');
-    centerGradient.addColorStop(1, '#1E40AF');
+    centerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+    centerGradient.addColorStop(0.3, 'rgba(200, 230, 255, 0.9)');
+    centerGradient.addColorStop(0.6, 'rgba(100, 180, 255, 0.8)');
+    centerGradient.addColorStop(1, 'rgba(50, 130, 220, 0.9)');
     ctx.fillStyle = centerGradient;
     ctx.fill();
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 5;
-    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(200, 240, 255, 0.95)';
+    ctx.lineWidth = 6;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(150, 220, 255, 0.8)';
     ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(200, 230, 255, 1)';
     ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.font = 'bold 18px system-ui';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(100, 180, 255, 0.8)';
+    ctx.shadowBlur = 8;
     ctx.fillText('SPIN', centerX, centerY);
     } catch (error) {
       console.error('Error rendering wheel:', error);
@@ -311,6 +347,19 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     ).toString(16).slice(1);
   };
 
+  const addIceEffect = (color: string, brightness: number): string => {
+    const num = parseInt(color.replace('#', ''), 16);
+    const R = (num >> 16);
+    const G = (num >> 8 & 0x00FF);
+    const B = (num & 0x0000FF);
+
+    const iceR = Math.min(255, R + brightness + 30);
+    const iceG = Math.min(255, G + brightness + 40);
+    const iceB = Math.min(255, B + brightness + 50);
+
+    return `rgba(${iceR}, ${iceG}, ${iceB}, 0.85)`;
+  };
+
   if (!Array.isArray(items) || items.length === 0) {
     return (
       <div className="relative flex items-center justify-center w-[400px] h-[400px]">
@@ -328,13 +377,21 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }
 
   return (
-    <div className="relative flex items-center justify-center">
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={400}
-        className="max-w-full h-auto"
-      />
+    <div className="relative flex items-center justify-center w-full">
+      <div className="relative w-full max-w-[350px] md:max-w-[400px] aspect-square">
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={400}
+          className="w-full h-full"
+        />
+        <div className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 50%)',
+            mixBlendMode: 'overlay'
+          }}
+        />
+      </div>
     </div>
   );
 };

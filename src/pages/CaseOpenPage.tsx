@@ -137,7 +137,6 @@ export default function CaseOpenPage({
       setTimeout(() => {
         setNotification(null);
         resetState();
-        onBack();
       }, 2000);
     }
   };
@@ -150,7 +149,6 @@ export default function CaseOpenPage({
       setTimeout(() => {
         setNotification(null);
         resetState();
-        onBack();
       }, 2000);
     }
   };
@@ -174,29 +172,29 @@ export default function CaseOpenPage({
         </div>
       )}
 
-      <div className="sticky top-14 md:top-16 bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-black/95 backdrop-blur-sm border-b border-gray-700 z-10 px-3 md:px-4 py-3 md:py-4">
+      <div className="sticky top-14 md:top-16 bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-black/95 backdrop-blur-sm border-b border-gray-700 z-10 px-4 md:px-6 py-3 md:py-4">
         <button
           onClick={onBack}
           disabled={isSpinning}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 md:px-4 py-2 rounded-lg transition-all border border-gray-600 text-sm md:text-base touch-manipulation"
+          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 md:px-5 py-2.5 md:py-3 rounded-xl transition-all border-2 border-gray-600 text-base md:text-lg font-semibold touch-manipulation min-h-[44px] active:scale-95"
         >
-          <ChevronLeft size={18} className="md:w-5 md:h-5" />
-          <span className="font-semibold">Back</span>
+          <ChevronLeft size={20} className="md:w-6 md:h-6" />
+          <span>Back</span>
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 md:px-4 py-6 md:py-8">
-        <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
+        <div className="text-center mb-4 md:mb-8">
+          <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-1 md:mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent px-2">
             {caseData.name}
           </h1>
-          <p className="text-gray-400 text-sm md:text-base">Spin the wheel to win amazing prizes!</p>
+          <p className="text-gray-400 text-xs md:text-sm lg:text-base px-2">Spin the wheel to win amazing prizes!</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-6 md:gap-8 mb-6 md:mb-8">
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-4 md:gap-6 lg:gap-8 mb-4 md:mb-8">
           <div className="flex-1 w-full flex flex-col items-center">
             <ErrorBoundary>
-              <div className="relative mb-6">
+              <div className="relative mb-4 md:mb-6 w-full">
                 <FortuneWheel
                   items={wheelItems}
                   winningIndex={currentWinningIndex}
@@ -204,7 +202,7 @@ export default function CaseOpenPage({
                   onSpinComplete={handleSpinComplete}
                 />
                 {openCount > 1 && allWinners.length > 0 && (
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full whitespace-nowrap">
+                  <div className="absolute -bottom-6 md:-bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm px-3 md:px-4 py-1.5 md:py-2 rounded-full whitespace-nowrap">
                     <p className="text-white text-xs md:text-sm font-bold">
                       Spin {currentSpinIndex + 1} of {openCount}
                     </p>
@@ -214,19 +212,19 @@ export default function CaseOpenPage({
             </ErrorBoundary>
 
             {!showDecision && (
-              <div className="w-full max-w-md space-y-4">
+              <div className="w-full max-w-md space-y-3 md:space-y-4 px-2">
                 <div>
-                  <p className="text-gray-400 text-xs md:text-sm mb-2 font-semibold text-center">Open Quantity:</p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <p className="text-gray-400 text-sm md:text-base mb-2 md:mb-3 font-semibold text-center">Open Quantity:</p>
+                  <div className="grid grid-cols-5 gap-2 md:gap-3">
                     {[1, 2, 3, 4, 5].map((count) => (
                       <button
                         key={count}
                         onClick={() => setOpenCount(count)}
                         disabled={isSpinning}
-                        className={`py-3 px-4 rounded-lg font-bold transition-all active:scale-95 touch-manipulation text-sm md:text-base ${
+                        className={`min-h-[48px] md:min-h-[52px] px-3 md:px-4 rounded-xl font-bold transition-all active:scale-95 touch-manipulation text-base md:text-lg ${
                           openCount === count
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border border-blue-400'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700'
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border-2 border-blue-400'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-2 border-gray-700'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {count}x
@@ -234,7 +232,7 @@ export default function CaseOpenPage({
                     ))}
                   </div>
                   {openCount > 1 && (
-                    <p className="text-gray-400 text-xs mt-2 text-center">
+                    <p className="text-gray-400 text-sm md:text-base mt-2 md:mt-3 text-center font-medium">
                       Total cost: {totalCost.toFixed(2)} Stars
                     </p>
                   )}
@@ -243,26 +241,26 @@ export default function CaseOpenPage({
                 {insufficientFunds ? (
                   <button
                     onClick={onNavigateToCharge}
-                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 text-lg shadow-lg touch-manipulation"
+                    className="w-full min-h-[56px] md:min-h-[64px] bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 text-base md:text-lg shadow-lg touch-manipulation"
                   >
-                    <span>💰 Top Up Balance</span>
+                    <span className="text-lg md:text-xl">💰 Top Up Balance</span>
                   </button>
                 ) : (
                   <button
                     onClick={handleOpen}
                     disabled={isSpinning}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-3 text-lg shadow-lg hover:shadow-blue-500/50 touch-manipulation"
+                    className="w-full min-h-[56px] md:min-h-[64px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg hover:shadow-blue-500/50 touch-manipulation"
                   >
-                    <span>{isSpinning ? 'Spinning...' : openCount > 1 ? `Spin ${openCount}x` : 'Spin Wheel'}</span>
-                    <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-lg">
-                      <span className="text-base">{totalCost.toFixed(2)}</span>
-                      <TonIcon className="w-5 h-5" />
+                    <span className="font-bold">{isSpinning ? 'Spinning...' : openCount > 1 ? `Spin ${openCount}x` : 'Spin Wheel'}</span>
+                    <div className="flex items-center gap-1.5 bg-white/20 px-2.5 md:px-3 py-1.5 rounded-lg">
+                      <span className="text-sm md:text-base font-bold">{totalCost.toFixed(2)}</span>
+                      <TonIcon className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                   </button>
                 )}
 
                 {insufficientFunds && (
-                  <p className="text-center text-orange-400 text-sm font-semibold">
+                  <p className="text-center text-orange-400 text-sm md:text-base font-semibold px-2">
                     ⚠️ Insufficient funds! Required {totalCost.toFixed(2)} Stars, you have {balance.toFixed(2)} Stars
                   </p>
                 )}
@@ -271,28 +269,28 @@ export default function CaseOpenPage({
           </div>
 
           {openCount > 1 && spinsCompleted.length > 0 && !showDecision && (
-            <div className="w-full lg:w-80 bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-white font-bold text-base mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-yellow-400" />
+            <div className="w-full lg:w-80 bg-gray-800/50 rounded-xl p-3 md:p-4 border border-gray-700">
+              <h3 className="text-white font-bold text-sm md:text-base mb-2 md:mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
                 Won Items ({spinsCompleted.length})
               </h3>
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              <div className="space-y-2 max-h-[300px] md:max-h-[500px] overflow-y-auto">
                 {spinsCompleted.map((item, index) => {
                   const rarityStyle = getRarityStyle(item.rarity);
                   return (
                     <div
                       key={`${item.id}-${index}`}
-                      className={`${rarityStyle.bg} rounded-lg p-3 border ${rarityStyle.border} animate-slide-in-right flex items-center gap-3`}
+                      className={`${rarityStyle.bg} rounded-lg p-2 md:p-3 border ${rarityStyle.border} animate-slide-in-right flex items-center gap-2 md:gap-3`}
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <img
                         src={item.image_url}
                         alt={item.name}
-                        className="w-16 h-16 rounded object-cover"
+                        className="w-12 h-12 md:w-16 md:h-16 rounded object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-semibold truncate">{item.name}</p>
-                        <p className={`${rarityStyle.text} text-xs capitalize`}>
+                        <p className="text-white text-xs md:text-sm font-semibold truncate">{item.name}</p>
+                        <p className={`${rarityStyle.text} text-[10px] md:text-xs capitalize font-medium`}>
                           {item.rarity}
                         </p>
                       </div>
@@ -305,13 +303,13 @@ export default function CaseOpenPage({
         </div>
 
         {showDecision && wonItems.length > 0 && (
-          <div className="max-w-6xl mx-auto animate-fade-in">
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">
-              <Sparkles className="text-yellow-400 animate-pulse" />
+          <div className="max-w-6xl mx-auto animate-fade-in px-2">
+            <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white mb-3 md:mb-4 text-center flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-yellow-400 animate-pulse" />
               Your Winnings!
-              <Sparkles className="text-yellow-400 animate-pulse" />
+              <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-yellow-400 animate-pulse" />
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-4 md:mb-6">
               {wonItems.map((item, index) => (
                 <ItemRevealCard
                   key={`${item.id}-${index}`}
@@ -321,41 +319,41 @@ export default function CaseOpenPage({
               ))}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3 max-w-2xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 max-w-2xl mx-auto">
               <button
                 onClick={handleKeepAll}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 active:scale-95 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-green-500/50 border border-green-500 text-base touch-manipulation"
+                className="flex-1 min-h-[56px] md:min-h-[64px] bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-green-500/50 border-2 border-green-500 text-base md:text-lg touch-manipulation flex items-center justify-center"
               >
-                Keep All ({wonItems.length} items)
+                <span>Keep All ({wonItems.length} items)</span>
               </button>
               <button
                 onClick={handleSellAll}
-                className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-orange-500/50 border border-orange-500 text-base touch-manipulation"
+                className="flex-1 min-h-[56px] md:min-h-[64px] bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-orange-500/50 border-2 border-orange-500 text-base md:text-lg touch-manipulation flex items-center justify-center"
               >
-                Sell All ({(wonItems.reduce((sum, item) => sum + (item.price * 0.94), 0)).toFixed(2)} Stars)
+                <span>Sell All ({(wonItems.reduce((sum, item) => sum + (item.price * 0.94), 0)).toFixed(2)} ⭐)</span>
               </button>
             </div>
           </div>
         )}
 
         {!showDecision && !isSpinning && (
-          <div className="max-w-4xl mx-auto mt-8">
-            <h3 className="text-white font-bold text-lg mb-4 text-center">Possible Prizes</h3>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="max-w-4xl mx-auto mt-6 md:mt-8 px-2">
+            <h3 className="text-white font-bold text-base md:text-lg lg:text-xl mb-3 md:mb-4 text-center">Possible Prizes</h3>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
               {items.map((item) => {
                 const rarityStyle = getRarityStyle(item.rarity);
                 return (
                   <div
                     key={item.id}
-                    className={`${rarityStyle.bg} rounded-lg p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} transition-all cursor-pointer hover:scale-105`}
+                    className={`${rarityStyle.bg} rounded-lg p-2 md:p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} transition-all cursor-pointer active:scale-95 touch-manipulation`}
                   >
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full aspect-square object-cover rounded mb-2"
+                      className="w-full aspect-square object-cover rounded mb-1 md:mb-2"
                     />
-                    <p className="text-white text-xs font-semibold truncate">{item.name}</p>
-                    <p className={`${rarityStyle.text} text-xs capitalize font-semibold`}>
+                    <p className="text-white text-[10px] md:text-xs font-semibold truncate">{item.name}</p>
+                    <p className={`${rarityStyle.text} text-[9px] md:text-xs capitalize font-semibold`}>
                       {item.rarity}
                     </p>
                   </div>
