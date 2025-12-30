@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,10 @@ interface Item {
 interface CaseOpenRequest {
   items: Item[];
   count?: number;
+  caseName?: string;
+  userId?: number;
+  username?: string;
+  userPhotoUrl?: string;
 }
 
 function getCryptoRandomFloat(): number {
@@ -30,11 +35,11 @@ function selectWinnerByRarity(items: Item[]): Item {
   let cumulativeProbability = 0;
 
   const rarityProbabilities: { [key: string]: number } = {
-    'common': 50,
-    'uncommon': 30,
-    'rare': 15,
-    'epic': 4,
-    'legendary': 1
+    'common': 80,
+    'uncommon': 15,
+    'rare': 4,
+    'mythical': 0.9,
+    'legendary': 0.1
   };
 
   const sortedItems = [...items].sort((a, b) => {
@@ -42,7 +47,7 @@ function selectWinnerByRarity(items: Item[]): Item {
       'common': 1,
       'uncommon': 2,
       'rare': 3,
-      'epic': 4,
+      'mythical': 4,
       'legendary': 5
     };
     return rarityOrder[a.rarity] - rarityOrder[b.rarity];
@@ -68,7 +73,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { items, count = 1 }: CaseOpenRequest = await req.json();
+    const { items, count = 1, caseName, userId, username, userPhotoUrl }: CaseOpenRequest = await req.json();
 
     if (!items || items.length === 0) {
       throw new Error('No items provided');
@@ -82,6 +87,27 @@ Deno.serve(async (req: Request) => {
     for (let i = 0; i < count; i++) {
       const winner = selectWinnerByRarity(items);
       winners.push(winner);
+    }
+
+    if (userId && username && caseName) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      for (const winner of winners) {
+        try {
+          await supabase.from('live_drops').insert({
+            user_id: userId,
+            username: username,
+            item_name: winner.name,
+            item_rarity: winner.rarity,
+            case_name: caseName,
+            user_photo_url: userPhotoUrl || null,
+          });
+        } catch (dbError) {
+          console.error('Error inserting live drop:', dbError);
+        }
+      }
     }
 
     return new Response(

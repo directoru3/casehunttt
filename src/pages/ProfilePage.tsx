@@ -1,4 +1,4 @@
-import { Package, TrendingUp, Copy, Star } from 'lucide-react';
+import { Package, TrendingUp, Copy, Star, Plus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
@@ -6,16 +6,20 @@ import ItemActionModal from '../components/ItemActionModal';
 import AnimatedNFT from '../components/AnimatedNFT';
 import TonIcon from '../components/TonIcon';
 import { telegramAuth } from '../utils/telegramAuth';
+import TonConnectButton from '../components/TonConnectButton';
+import DepositModal from '../components/DepositModal';
 
 interface ProfilePageProps {
   inventory: Item[];
   balance: number;
   onSellItem: (item: Item, inventoryIndex: number) => void;
   onWithdrawItem: (item: Item, inventoryIndex: number) => void;
+  onDeposit?: (newBalance: number) => void;
 }
 
-export default function ProfilePage({ inventory, balance, onSellItem, onWithdrawItem }: ProfilePageProps) {
+export default function ProfilePage({ inventory, balance, onSellItem, onWithdrawItem, onDeposit }: ProfilePageProps) {
   const [selectedItem, setSelectedItem] = useState<{ item: Item; index: number } | null>(null);
+  const [showDeposit, setShowDeposit] = useState(false);
   const totalItems = inventory.length;
   const currentUser = telegramAuth.getCurrentUser();
   const userId = currentUser?.id || 0;
@@ -110,6 +114,26 @@ export default function ProfilePage({ inventory, balance, onSellItem, onWithdraw
         </div>
 
         <div className="bg-gray-900/50 rounded-2xl p-4 md:p-6 mb-6 border border-gray-800 animate-fade-in">
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet size={20} className="text-blue-400" />
+            <h2 className="text-lg md:text-xl font-bold text-white">Wallet & Top-up</h2>
+          </div>
+          <p className="text-gray-400 text-xs md:text-sm mb-4">
+            Connect your TON wallet and add funds to your account
+          </p>
+          <div className="flex flex-col gap-3">
+            <TonConnectButton />
+            <button
+              onClick={() => setShowDeposit(true)}
+              className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 active:scale-95 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-yellow-500/50 flex items-center justify-center gap-2 touch-manipulation"
+            >
+              <Plus size={20} />
+              <span>Add Telegram Stars</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-gray-900/50 rounded-2xl p-4 md:p-6 mb-6 border border-gray-800 animate-fade-in">
           <h2 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Referral Program</h2>
           <p className="text-gray-400 text-xs md:text-sm mb-4">
             Share your referral code with friends and get bonuses!
@@ -198,6 +222,17 @@ export default function ProfilePage({ inventory, balance, onSellItem, onWithdraw
           onClose={() => setSelectedItem(null)}
           onSell={handleSell}
           onWithdraw={handleWithdraw}
+        />
+      )}
+
+      {showDeposit && onDeposit && (
+        <DepositModal
+          onClose={() => setShowDeposit(false)}
+          onDeposit={(newBalance) => {
+            onDeposit(newBalance);
+            setShowDeposit(false);
+          }}
+          currentBalance={balance}
         />
       )}
     </div>

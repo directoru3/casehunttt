@@ -3,6 +3,7 @@ import Header from './components/Header';
 import WelcomeScreen from './components/WelcomeScreen';
 import CategoryIcons from './components/CategoryIcons';
 import PromoSection from './components/PromoSection';
+import LiveDropsFeed from './components/LiveDropsFeed';
 import FilterTabs from './components/FilterTabs';
 import CaseCard from './components/CaseCard';
 import CaseOpenModal from './components/CaseOpenModal';
@@ -258,7 +259,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black pt-16">
-      <Header balance={balance} onDepositClick={() => setShowDeposit(true)} />
+      <Header balance={balance} />
 
       {currentPage === 'main' && (
         <>
@@ -266,19 +267,11 @@ function App() {
           <PromoSection />
 
           <div className="max-w-7xl mx-auto px-4 pb-24">
+            <LiveDropsFeed />
             <FilterTabs
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
             />
-
-            <div className="mb-6 flex justify-end">
-              <button
-                onClick={() => setShowMultiOpen(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:scale-95 text-white font-bold py-3 px-4 md:px-6 rounded-xl transition-all shadow-lg hover:shadow-purple-500/50 text-sm md:text-base"
-              >
-                🎁 Multi-Open (Up to 5)
-              </button>
-            </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filteredCases.map((caseData) => (
@@ -305,6 +298,7 @@ function App() {
           balance={balance}
           onSellItem={handleSellItem}
           onWithdrawItem={handleWithdrawItem}
+          onDeposit={handleDeposit}
         />
       )}
 

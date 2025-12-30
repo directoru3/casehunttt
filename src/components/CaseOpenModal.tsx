@@ -1,9 +1,11 @@
 import { ChevronDown, Sparkles } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Case, Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
 import AnimatedNFT from './AnimatedNFT';
 import TonIcon from './TonIcon';
+import { FortuneWheel } from './FortuneWheel';
+import { telegramAuth } from '../utils/telegramAuth';
 
 interface CaseOpenModalProps {
   caseData: Case;
@@ -18,25 +20,25 @@ interface CaseOpenModalProps {
 export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, onSellItem, balance = 0, onNavigateToCharge }: CaseOpenModalProps) {
   const [spinning, setSpinning] = useState(false);
   const [wonItem, setWonItem] = useState<Item | null>(null);
+  const [wonIndex, setWonIndex] = useState<number>(0);
   const [secretCode, setSecretCode] = useState('');
   const [showPrizes, setShowPrizes] = useState(true);
   const [showDecision, setShowDecision] = useState(false);
   const [showFullscreenWin, setShowFullscreenWin] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [openCount, setOpenCount] = useState(1);
 
-  const hasEnoughBalance = balance >= caseData.price;
+  const isFreeGift = caseData.id === 'free-gift';
+  const totalCost = caseData.price * openCount;
+  const hasEnoughBalance = balance >= totalCost;
   const insufficientFunds = !hasEnoughBalance;
 
-  const generateItems = () => {
-    const repeated: Item[] = [];
-    for (let i = 0; i < 50; i++) {
-      repeated.push(items[Math.floor(Math.random() * items.length)]);
-    }
-    return repeated;
-  };
-
-  const [displayItems, setDisplayItems] = useState<Item[]>(generateItems());
+  const wheelItems = items.map(item => ({
+    name: item.name,
+    rarity: item.rarity,
+    image: item.image_url,
+    color: getRarityStyle(item.rarity).border
+  }));
 
   const handleSpin = async () => {
     if (spinning || insufficientFunds) return;
@@ -45,7 +47,8 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
     setWonItem(null);
     setShowDecision(false);
     setShowFullscreenWin(false);
-    setDisplayItems(generateItems());
+
+    const currentUser = telegramAuth.getCurrentUser();
 
     try {
       const response = await fetch(
@@ -56,37 +59,52 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ items, count: 1 }),
+          body: JSON.stringify({
+            items,
+            count: openCount,
+            caseName: caseData.name,
+            userId: currentUser?.id,
+            username: telegramAuth.getDisplayName(),
+            userPhotoUrl: telegramAuth.getAvatarUrl(),
+          }),
         }
       );
 
       const data = await response.json();
-      const winner = data.winners[0];
+      const winners = data.winners;
 
-      setTimeout(() => {
+      if (openCount === 1) {
+        const winner = winners[0];
+        const winnerIndex = items.findIndex(item => item.id === winner.id);
+        setWonIndex(winnerIndex);
         setWonItem(winner);
-        setSpinning(false);
-        setShowFullscreenWin(true);
+      } else {
+        for (let i = 0; i < winners.length; i++) {
+          const winner = winners[i];
+          const winnerIndex = items.findIndex(item => item.id === winner.id);
 
-        setTimeout(() => {
-          setShowFullscreenWin(false);
-          setShowDecision(true);
-        }, 3000);
-      }, 5000);
+          setWonIndex(winnerIndex);
+          setWonItem(winner);
+
+          if (i < winners.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 6000));
+          }
+        }
+      }
     } catch (error) {
       console.error('Error opening case:', error);
       setSpinning(false);
     }
+  };
 
-    if (scrollRef.current) {
-      const itemWidth = 150;
-      const centerOffset = scrollRef.current.offsetWidth / 2 - itemWidth / 2;
-      const randomWinPosition = 30 + Math.floor(Math.random() * 10);
-      const scrollDistance = randomWinPosition * itemWidth - centerOffset;
+  const handleSpinComplete = () => {
+    setSpinning(false);
+    setShowFullscreenWin(true);
 
-      scrollRef.current.style.transition = 'transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-      scrollRef.current.style.transform = `translateX(-${scrollDistance}px)`;
-    }
+    setTimeout(() => {
+      setShowFullscreenWin(false);
+      setShowDecision(true);
+    }, 3000);
   };
 
   const handleKeep = () => {
@@ -113,13 +131,6 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
       setShowFullscreenWin(false);
     }
   };
-
-  useEffect(() => {
-    if (!spinning && scrollRef.current) {
-      scrollRef.current.style.transition = 'none';
-      scrollRef.current.style.transform = 'translateX(0)';
-    }
-  }, [spinning]);
 
   return (
     <>
@@ -149,41 +160,16 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
 
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-2">{caseData.name}</h2>
-            <p className="text-gray-400">Spin to win amazing NFT items!</p>
+            <p className="text-gray-400">Spin the wheel to win amazing NFT items!</p>
           </div>
 
-          <div className="relative mb-8 overflow-hidden rounded-xl bg-gray-800/50 border border-gray-700">
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-blue-500 z-10 transform -translate-x-1/2 shadow-lg shadow-blue-500/50" />
-
-            <div className="relative h-40 flex items-center">
-              <div
-                ref={scrollRef}
-                className="flex gap-4 px-8 py-4"
-                style={{ willChange: 'transform' }}
-              >
-                {displayItems.map((item, index) => {
-                  const rarityStyle = getRarityStyle(item.rarity);
-                  return (
-                    <div
-                      key={index}
-                      className={`min-w-[120px] w-[120px] h-[120px] ${rarityStyle.bg} rounded-lg p-2 flex flex-col items-center justify-center border-2 ${rarityStyle.border} ${rarityStyle.shadow} transition-all`}
-                    >
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded mb-2"
-                      />
-                      <TonIcon className="w-6 h-6" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-gray-800/90 to-transparent" />
-              <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-gray-800/90 to-transparent" />
-            </div>
+          <div className="relative mb-8 flex items-center justify-center py-4">
+            <FortuneWheel
+              items={wheelItems}
+              winningIndex={wonIndex}
+              isSpinning={spinning}
+              onSpinComplete={handleSpinComplete}
+            />
           </div>
 
           {wonItem && showDecision && (
@@ -240,6 +226,33 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors mb-4"
             />
 
+            {!isFreeGift && (
+              <div className="mb-4">
+                <p className="text-gray-400 text-sm mb-2 font-semibold">Open Quantity:</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => setOpenCount(count)}
+                      disabled={spinning}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all ${
+                        openCount === count
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {count}x
+                    </button>
+                  ))}
+                </div>
+                {openCount > 1 && (
+                  <p className="text-gray-400 text-xs mt-2 text-center">
+                    Total cost: {totalCost.toFixed(2)} Stars
+                  </p>
+                )}
+              </div>
+            )}
+
             {insufficientFunds ? (
               <button
                 onClick={onNavigateToCharge}
@@ -253,9 +266,9 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
                 disabled={spinning}
                 className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg transition-all flex items-center justify-center gap-3 text-lg"
               >
-                <span>{spinning ? 'Spinning...' : 'Spin'}</span>
+                <span>{spinning ? 'Spinning...' : openCount > 1 ? `Spin ${openCount}x` : 'Spin'}</span>
                 <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded">
-                  <span>{caseData.price}</span>
+                  <span>{totalCost.toFixed(2)}</span>
                   <TonIcon className="w-5 h-5" />
                 </div>
               </button>
@@ -263,7 +276,7 @@ export default function CaseOpenModal({ caseData, items, onClose, onKeepItem, on
 
             {insufficientFunds && (
               <p className="text-center text-orange-400 text-sm mt-3 font-semibold">
-                ⚠️ Недостаточно средств! Требуется {caseData.price} TON, у вас {balance.toFixed(2)} TON
+                ⚠️ Недостаточно средств! Требуется {totalCost.toFixed(2)} Stars, у вас {balance.toFixed(2)} Stars
               </p>
             )}
 
