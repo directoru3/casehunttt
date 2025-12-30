@@ -4,11 +4,11 @@ import { Case, Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
 import AnimatedNFT from './AnimatedNFT';
 import TonIcon from './TonIcon';
-import { FortuneWheel } from './FortuneWheel';
 import { telegramAuth } from '../utils/telegramAuth';
 import ErrorBoundary from './ErrorBoundary';
 import ItemRevealCard from './ItemRevealCard';
-import MultiOpenProgress from './MultiOpenProgress';
+import PepeCharacter from './PepeCharacter';
+import EggPinata from './EggPinata';
 
 interface EnhancedCaseOpenModalProps {
   caseData: Case;
@@ -29,50 +29,45 @@ export default function EnhancedCaseOpenModal({
   balance = 0,
   onNavigateToCharge
 }: EnhancedCaseOpenModalProps) {
-  const [spinning, setSpinning] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const [wonItems, setWonItems] = useState<Item[]>([]);
-  const [wonIndexes, setWonIndexes] = useState<number[]>([]);
   const [secretCode, setSecretCode] = useState('');
   const [showPrizes, setShowPrizes] = useState(true);
   const [showDecision, setShowDecision] = useState(false);
   const [showFullscreenWin, setShowFullscreenWin] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [openCount, setOpenCount] = useState(1);
-  const [currentSpinIndex, setCurrentSpinIndex] = useState(0);
-  const [showWheels, setShowWheels] = useState(true);
-  const [wheelsVisible, setWheelsVisible] = useState(true);
-  const [currentWinningItem, setCurrentWinningItem] = useState<Item | null>(null);
-  const [showCurrentWin, setShowCurrentWin] = useState(false);
+  const [currentEggIndex, setCurrentEggIndex] = useState(0);
   const [allWinners, setAllWinners] = useState<Item[]>([]);
+  const [pepeEmotion, setPepeEmotion] = useState<'idle' | 'excited' | 'happy' | 'celebrating'>('idle');
+  const [brokenEggs, setBrokenEggs] = useState<number[]>([]);
+  const [showEggs, setShowEggs] = useState(false);
+  const [currentRevealedItem, setCurrentRevealedItem] = useState<Item | null>(null);
 
   const isFreeGift = caseData.id === 'free-gift';
   const totalCost = caseData.price * openCount;
   const hasEnoughBalance = balance >= totalCost;
   const insufficientFunds = !hasEnoughBalance;
 
-  const wheelItems = Array.isArray(items)
-    ? items.filter(item => item && item.name && item.rarity && item.image_url).map(item => ({
-        name: item.name,
-        rarity: item.rarity,
-        image: item.image_url,
-        color: getRarityStyle(item.rarity).border
-      }))
-    : [];
+  const getEggVariant = (): 'normal' | 'golden' | 'diamond' => {
+    if (openCount === 5) return 'diamond';
+    if (openCount >= 3) return 'golden';
+    return 'normal';
+  };
 
-  const handleSpin = async () => {
-    if (spinning || insufficientFunds) return;
+  const handleOpen = async () => {
+    if (isOpening || insufficientFunds) return;
 
-    setSpinning(true);
+    setIsOpening(true);
     setWonItems([]);
-    setWonIndexes([]);
     setShowDecision(false);
     setShowFullscreenWin(false);
-    setCurrentSpinIndex(0);
-    setShowWheels(true);
-    setWheelsVisible(true);
-    setCurrentWinningItem(null);
-    setShowCurrentWin(false);
+    setCurrentEggIndex(0);
+    setBrokenEggs([]);
     setAllWinners([]);
+    setShowEggs(true);
+    setCurrentRevealedItem(null);
+    setPepeEmotion('excited');
 
     const currentUser = telegramAuth.getCurrentUser();
 
@@ -107,58 +102,48 @@ export default function EnhancedCaseOpenModal({
         throw new Error('No winners received');
       }
 
-      const indexes = winners.map(winner => {
-        const index = items.findIndex(item => item.id === winner.id);
-        return index >= 0 ? index : 0;
-      });
-
       setAllWinners(winners);
-      setWonIndexes(indexes);
+      setPepeEmotion('happy');
     } catch (error) {
       console.error('Error opening case:', error);
-      setSpinning(false);
-      setShowWheels(true);
-      setWheelsVisible(true);
+      setIsOpening(false);
+      setShowEggs(false);
+      setPepeEmotion('idle');
       alert('Failed to open case. Please try again.');
     }
   };
 
-  const handleSpinComplete = () => {
-    const currentIndex = currentSpinIndex;
-    const winningItem = allWinners[currentIndex];
+  const handleEggBreak = () => {
+    const winningItem = allWinners[currentEggIndex];
 
     if (winningItem) {
-      setCurrentWinningItem(winningItem);
-      setShowCurrentWin(true);
-
+      setBrokenEggs(prev => [...prev, currentEggIndex]);
+      setCurrentRevealedItem(winningItem);
       setWonItems(prev => [...prev, winningItem]);
+      setPepeEmotion('celebrating');
 
       setTimeout(() => {
-        setShowCurrentWin(false);
-        setCurrentWinningItem(null);
+        setCurrentRevealedItem(null);
+        setPepeEmotion('happy');
 
-        setTimeout(() => {
-          const newIndex = currentIndex + 1;
-          setCurrentSpinIndex(newIndex);
+        const nextIndex = currentEggIndex + 1;
+        if (nextIndex >= openCount) {
+          setTimeout(() => {
+            setShowEggs(false);
+            setShowFullscreenWin(true);
+            setPepeEmotion('celebrating');
 
-          if (newIndex >= openCount) {
             setTimeout(() => {
-              setSpinning(false);
-              setWheelsVisible(false);
-
-              setTimeout(() => {
-                setShowWheels(false);
-                setShowFullscreenWin(true);
-
-                setTimeout(() => {
-                  setShowFullscreenWin(false);
-                  setShowDecision(true);
-                }, 3000);
-              }, 600);
-            }, 300);
-          }
-        }, 300);
-      }, 800);
+              setShowFullscreenWin(false);
+              setShowDecision(true);
+              setIsOpening(false);
+              setPepeEmotion('idle');
+            }, 3000);
+          }, 800);
+        } else {
+          setCurrentEggIndex(nextIndex);
+        }
+      }, 1500);
     }
   };
 
@@ -183,26 +168,19 @@ export default function EnhancedCaseOpenModal({
 
   const resetState = () => {
     setWonItems([]);
-    setWonIndexes([]);
     setShowDecision(false);
     setShowFullscreenWin(false);
-    setCurrentSpinIndex(0);
-
-    setTimeout(() => {
-      setShowWheels(true);
-      setTimeout(() => {
-        setWheelsVisible(true);
-      }, 50);
-    }, 300);
+    setCurrentEggIndex(0);
+    setBrokenEggs([]);
+    setAllWinners([]);
+    setShowEggs(false);
+    setCurrentRevealedItem(null);
+    setPepeEmotion('idle');
   };
 
   return (
     <>
       <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-2 md:p-4">
-        {spinning && openCount > 1 && (
-          <MultiOpenProgress current={currentSpinIndex + 1} total={openCount} />
-        )}
-
         {notification && (
           <div className="fixed top-20 md:top-24 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-down px-3">
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-green-400">
@@ -215,11 +193,11 @@ export default function EnhancedCaseOpenModal({
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl max-w-6xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto p-3 md:p-6 relative border border-gray-700 shadow-2xl">
           <button
             onClick={() => {
-              if (!spinning) {
+              if (!isOpening) {
                 onClose();
               }
             }}
-            disabled={spinning}
+            disabled={isOpening}
             className="sticky top-0 right-0 ml-auto mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 md:px-4 py-2 rounded-lg transition-all z-20 border border-gray-600 text-sm md:text-base touch-manipulation"
           >
             <ChevronDown size={18} className="md:w-5 md:h-5" />
@@ -230,31 +208,71 @@ export default function EnhancedCaseOpenModal({
             <h2 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               {caseData.name}
             </h2>
-            <p className="text-gray-400 text-xs md:text-base">Spin the wheel to win amazing NFT items!</p>
+            <p className="text-gray-400 text-xs md:text-base">Tap the egg to reveal your prize!</p>
           </div>
 
-          {showWheels && wheelItems.length > 0 && (
+          {showEggs && allWinners.length > 0 && (
             <ErrorBoundary>
-              <div
-                className={`flex flex-col items-center justify-center gap-4 mb-6 md:mb-8 transition-all duration-500 ${
-                  wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                }`}
-              >
-                <div className="flex-shrink-0 animate-fade-in">
-                  <FortuneWheel
-                    items={wheelItems}
-                    winningIndex={wonIndexes[currentSpinIndex] !== undefined ? wonIndexes[currentSpinIndex] : 0}
-                    isSpinning={spinning && currentSpinIndex < allWinners.length && !showCurrentWin}
-                    onSpinComplete={handleSpinComplete}
-                  />
+              <div className="flex flex-col items-center justify-center gap-6 md:gap-8 mb-6 md:mb-8 min-h-[500px]">
+                <div className="flex items-center justify-center gap-4 md:gap-8">
+                  <div className="hidden md:block">
+                    <PepeCharacter emotion={pepeEmotion} size="medium" />
+                  </div>
+
+                  {openCount === 1 ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <EggPinata
+                        isOpen={brokenEggs.includes(0)}
+                        onBreak={handleEggBreak}
+                        tapsRequired={3}
+                        variant={getEggVariant()}
+                      />
+                      {currentRevealedItem && (
+                        <div className="animate-scale-in">
+                          <ItemRevealCard item={currentRevealedItem} delay={0} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 max-w-4xl">
+                      {Array.from({ length: openCount }).map((_, index) => (
+                        <div
+                          key={index}
+                          className={`flex flex-col items-center gap-2 transition-all ${
+                            index === currentEggIndex ? 'scale-110' : brokenEggs.includes(index) ? 'scale-75 opacity-50' : 'scale-90 opacity-70'
+                          }`}
+                        >
+                          <EggPinata
+                            isOpen={brokenEggs.includes(index)}
+                            onBreak={index === currentEggIndex ? handleEggBreak : undefined}
+                            tapsRequired={index === currentEggIndex ? 3 : 999}
+                            variant={getEggVariant()}
+                            autoBreak={false}
+                          />
+                          {index === currentEggIndex && currentRevealedItem && (
+                            <div className="animate-scale-in">
+                              <ItemRevealCard item={currentRevealedItem} delay={0} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="hidden md:block">
+                    <PepeCharacter emotion={pepeEmotion} size="medium" />
+                  </div>
                 </div>
 
-                {showCurrentWin && currentWinningItem && (
-                  <div className="animate-scale-in">
-                    <ItemRevealCard
-                      item={currentWinningItem}
-                      delay={0}
-                    />
+                <div className="md:hidden">
+                  <PepeCharacter emotion={pepeEmotion} size="small" />
+                </div>
+
+                {isOpening && currentEggIndex < openCount && (
+                  <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
+                    <p className="text-white text-sm font-bold">
+                      Opening {currentEggIndex + 1} of {openCount}
+                    </p>
                   </div>
                 )}
               </div>
@@ -295,117 +313,121 @@ export default function EnhancedCaseOpenModal({
             </div>
           )}
 
-          <div className="mb-4 md:mb-6">
-            <div className="flex items-center gap-2 mb-2 md:mb-3 text-gray-300">
-              <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-700 rounded-full flex items-center justify-center shrink-0">
-                <span className="text-[10px] md:text-xs">i</span>
-              </div>
-              <p className="text-xs md:text-sm">To open this case, enter the secret code</p>
-            </div>
-
-            <input
-              type="text"
-              placeholder="Secret Code"
-              value={secretCode}
-              onChange={(e) => setSecretCode(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors mb-3 md:mb-4 text-sm md:text-base"
-            />
-
-            {!isFreeGift && (
-              <div className="mb-3 md:mb-4">
-                <p className="text-gray-400 text-xs md:text-sm mb-2 font-semibold">Open Quantity:</p>
-                <div className="grid grid-cols-5 gap-1.5 md:gap-2">
-                  {[1, 2, 3, 4, 5].map((count) => (
-                    <button
-                      key={count}
-                      onClick={() => setOpenCount(count)}
-                      disabled={spinning}
-                      className={`py-2.5 md:py-3 px-2 md:px-4 rounded-lg font-bold transition-all active:scale-95 touch-manipulation text-sm md:text-base ${
-                        openCount === count
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border border-blue-400'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {count}x
-                    </button>
-                  ))}
+          {!showEggs && !showDecision && (
+            <>
+              <div className="mb-4 md:mb-6">
+                <div className="flex items-center gap-2 mb-2 md:mb-3 text-gray-300">
+                  <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-700 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-[10px] md:text-xs">i</span>
+                  </div>
+                  <p className="text-xs md:text-sm">To open this case, enter the secret code</p>
                 </div>
-                {openCount > 1 && (
-                  <p className="text-gray-400 text-xs mt-2 text-center">
-                    Total cost: {totalCost.toFixed(2)} Stars
+
+                <input
+                  type="text"
+                  placeholder="Secret Code"
+                  value={secretCode}
+                  onChange={(e) => setSecretCode(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors mb-3 md:mb-4 text-sm md:text-base"
+                />
+
+                {!isFreeGift && (
+                  <div className="mb-3 md:mb-4">
+                    <p className="text-gray-400 text-xs md:text-sm mb-2 font-semibold">Open Quantity:</p>
+                    <div className="grid grid-cols-5 gap-1.5 md:gap-2">
+                      {[1, 2, 3, 4, 5].map((count) => (
+                        <button
+                          key={count}
+                          onClick={() => setOpenCount(count)}
+                          disabled={isOpening}
+                          className={`py-2.5 md:py-3 px-2 md:px-4 rounded-lg font-bold transition-all active:scale-95 touch-manipulation text-sm md:text-base ${
+                            openCount === count
+                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border border-blue-400'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {count}x
+                        </button>
+                      ))}
+                    </div>
+                    {openCount > 1 && (
+                      <p className="text-gray-400 text-xs mt-2 text-center">
+                        Total cost: {totalCost.toFixed(2)} Stars
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {insufficientFunds ? (
+                  <button
+                    onClick={onNavigateToCharge}
+                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-3 md:py-4 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg touch-manipulation"
+                  >
+                    <span>💰 Top Up Balance</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleOpen}
+                    disabled={isOpening}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 md:py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg hover:shadow-blue-500/50 touch-manipulation"
+                  >
+                    <span>{isOpening ? 'Opening...' : openCount > 1 ? `Open ${openCount}x` : 'Open Case'}</span>
+                    <div className="flex items-center gap-1 md:gap-1.5 bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg">
+                      <span className="text-sm md:text-base">{totalCost.toFixed(2)}</span>
+                      <TonIcon className="w-4 h-4 md:w-5 md:h-5" />
+                    </div>
+                  </button>
+                )}
+
+                {insufficientFunds && (
+                  <p className="text-center text-orange-400 text-xs md:text-sm mt-2 md:mt-3 font-semibold">
+                    ⚠️ Insufficient funds! Required {totalCost.toFixed(2)} Stars, you have {balance.toFixed(2)} Stars
                   </p>
                 )}
+
+                <p className="text-center text-gray-400 text-xs md:text-sm mt-2 md:mt-3">
+                  Search for secret codes in <span className="text-blue-400">@tatar_mafia_test.net</span>
+                </p>
               </div>
-            )}
 
-            {insufficientFunds ? (
-              <button
-                onClick={onNavigateToCharge}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-3 md:py-4 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg touch-manipulation"
-              >
-                <span>💰 Top Up Balance</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleSpin}
-                disabled={spinning}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 md:py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg hover:shadow-blue-500/50 touch-manipulation"
-              >
-                <span>{spinning ? 'Spinning...' : openCount > 1 ? `Spin ${openCount}x` : 'Spin'}</span>
-                <div className="flex items-center gap-1 md:gap-1.5 bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg">
-                  <span className="text-sm md:text-base">{totalCost.toFixed(2)}</span>
-                  <TonIcon className="w-4 h-4 md:w-5 md:h-5" />
-                </div>
-              </button>
-            )}
+              <div>
+                <button
+                  onClick={() => setShowPrizes(!showPrizes)}
+                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2 md:mb-3 w-full touch-manipulation"
+                >
+                  <span className="text-xs md:text-sm font-semibold">Possible prizes:</span>
+                  <ChevronDown
+                    size={14}
+                    className={`md:w-4 md:h-4 transform transition-transform ${showPrizes ? 'rotate-180' : ''}`}
+                  />
+                </button>
 
-            {insufficientFunds && (
-              <p className="text-center text-orange-400 text-xs md:text-sm mt-2 md:mt-3 font-semibold">
-                ⚠️ Insufficient funds! Required {totalCost.toFixed(2)} Stars, you have {balance.toFixed(2)} Stars
-              </p>
-            )}
-
-            <p className="text-center text-gray-400 text-xs md:text-sm mt-2 md:mt-3">
-              Search for secret codes in <span className="text-blue-400">@tatar_mafia_test.net</span>
-            </p>
-          </div>
-
-          <div>
-            <button
-              onClick={() => setShowPrizes(!showPrizes)}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2 md:mb-3 w-full touch-manipulation"
-            >
-              <span className="text-xs md:text-sm font-semibold">Possible prizes:</span>
-              <ChevronDown
-                size={14}
-                className={`md:w-4 md:h-4 transform transition-transform ${showPrizes ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            {showPrizes && (
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
-                {items.map((item) => {
-                  const rarityStyle = getRarityStyle(item.rarity);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`${rarityStyle.bg} rounded-lg p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} ${rarityStyle.glow} transition-all cursor-pointer hover:scale-105`}
-                    >
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full aspect-square object-cover rounded mb-2"
-                      />
-                      <p className="text-white text-xs font-semibold truncate">{item.name}</p>
-                      <p className={`${rarityStyle.text} text-xs capitalize font-semibold`}>
-                        {item.rarity}
-                      </p>
-                    </div>
-                  );
-                })}
+                {showPrizes && (
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                    {items.map((item) => {
+                      const rarityStyle = getRarityStyle(item.rarity);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`${rarityStyle.bg} rounded-lg p-3 border-2 ${rarityStyle.border} ${rarityStyle.shadow} ${rarityStyle.glow} transition-all cursor-pointer hover:scale-105`}
+                        >
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-full aspect-square object-cover rounded mb-2"
+                          />
+                          <p className="text-white text-xs font-semibold truncate">{item.name}</p>
+                          <p className={`${rarityStyle.text} text-xs capitalize font-semibold`}>
+                            {item.rarity}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -434,7 +456,9 @@ export default function EnhancedCaseOpenModal({
           </div>
 
           <div className="relative z-10 text-center animate-scale-in px-4">
-            <div className="mb-8">
+            <div className="mb-8 flex flex-col items-center gap-4">
+              <PepeCharacter emotion="celebrating" size="large" />
+
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 animate-bounce-slow drop-shadow-2xl">
                 CONGRATULATIONS!
               </h1>
