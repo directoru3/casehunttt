@@ -264,7 +264,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black pt-14 md:pt-16">
       <Header balance={balance} />
 
       {currentPage === 'main' && (
@@ -272,14 +272,14 @@ function App() {
           <CategoryIcons />
           <PromoSection />
 
-          <div className="max-w-7xl mx-auto px-4 pb-24">
+          <div className="max-w-7xl mx-auto px-3 md:px-4 pb-20 md:pb-24">
             <LiveDropsFeed />
             <FilterTabs
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
             />
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-4">
               {filteredCases.map((caseData) => (
                 <CaseCard
                   key={caseData.id}

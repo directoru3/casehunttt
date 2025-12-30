@@ -177,17 +177,17 @@ export default function EnhancedCaseOpenModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-2 md:p-4">
         {notification && (
-          <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-down">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-green-400">
-              <Sparkles size={20} className="animate-pulse" />
-              <span className="font-bold">{notification}</span>
+          <div className="fixed top-20 md:top-24 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-down px-3">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-green-400">
+              <Sparkles size={16} className="animate-pulse md:w-5 md:h-5" />
+              <span className="font-bold text-sm md:text-base">{notification}</span>
             </div>
           </div>
         )}
 
-        <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 relative border border-gray-700 shadow-2xl">
+        <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl max-w-6xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto p-3 md:p-6 relative border border-gray-700 shadow-2xl">
           <button
             onClick={() => {
               if (!spinning) {
@@ -195,27 +195,27 @@ export default function EnhancedCaseOpenModal({
               }
             }}
             disabled={spinning}
-            className="sticky top-0 right-0 ml-auto mb-4 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all z-20 border border-gray-600"
+            className="sticky top-0 right-0 ml-auto mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 md:px-4 py-2 rounded-lg transition-all z-20 border border-gray-600 text-sm md:text-base touch-manipulation"
           >
-            <ChevronDown size={20} />
+            <ChevronDown size={18} className="md:w-5 md:h-5" />
             <span className="font-semibold">Close</span>
           </button>
 
-          <div className="mb-6 text-center">
-            <h2 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="mb-4 md:mb-6 text-center">
+            <h2 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               {caseData.name}
             </h2>
-            <p className="text-gray-400">Spin the wheel to win amazing NFT items!</p>
+            <p className="text-gray-400 text-xs md:text-base">Spin the wheel to win amazing NFT items!</p>
           </div>
 
           {showWheels && wheelItems.length > 0 && (
             <ErrorBoundary>
               <div
-                className={`flex gap-6 mb-8 items-center justify-center transition-all duration-500 ${
+                className={`flex flex-col md:flex-row gap-3 md:gap-6 mb-6 md:mb-8 items-center justify-center transition-all duration-500 ${
                   wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
               >
-                <div className="flex-shrink-0 animate-fade-in">
+                <div className="flex-shrink-0 animate-fade-in scale-75 md:scale-100">
                   <FortuneWheel
                     items={wheelItems}
                     winningIndex={wonIndexes[0] !== undefined ? wonIndexes[0] : 0}
@@ -225,18 +225,18 @@ export default function EnhancedCaseOpenModal({
                 </div>
 
                 {openCount > 1 && (
-                  <div className="flex flex-col gap-4 justify-center">
+                  <div className="flex flex-row md:flex-col gap-2 md:gap-4 justify-center overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
                     {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
                       <div
                         key={index}
-                        className="mini-wheel-container animate-mini-wheel-in"
+                        className="mini-wheel-container animate-mini-wheel-in shrink-0"
                         style={{
                           animationDelay: `${index * 100}ms`,
-                          width: '120px',
-                          height: '120px'
+                          width: '80px',
+                          height: '80px'
                         }}
                       >
-                        <div style={{ transform: 'scale(0.3)', transformOrigin: 'center' }}>
+                        <div style={{ transform: 'scale(0.2)', transformOrigin: 'center' }} className="md:scale-[0.3]">
                           <FortuneWheel
                             items={wheelItems}
                             winningIndex={wonIndexes[index] !== undefined ? wonIndexes[index] : 0}
@@ -253,9 +253,9 @@ export default function EnhancedCaseOpenModal({
           )}
 
           {showDecision && wonItems.length > 0 && (
-            <div className="mb-6 animate-fade-in">
-              <h3 className="text-xl font-bold text-white mb-4 text-center">Your Winnings!</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            <div className="mb-4 md:mb-6 animate-fade-in">
+              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 text-center">Your Winnings!</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
                 {wonItems.map((item, index) => {
                   const rarityStyle = getRarityStyle(item.rarity);
                   return (
@@ -287,16 +287,16 @@ export default function EnhancedCaseOpenModal({
                 })}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col md:flex-row gap-2 md:gap-3">
                 <button
                   onClick={handleKeepAll}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-green-500/50 border border-green-500"
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 active:scale-95 text-white font-bold py-3 md:py-4 rounded-xl transition-all shadow-lg hover:shadow-green-500/50 border border-green-500 text-sm md:text-base touch-manipulation"
                 >
                   Keep All ({wonItems.length} items)
                 </button>
                 <button
                   onClick={handleSellAll}
-                  className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-orange-500/50 border border-orange-500"
+                  className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-3 md:py-4 rounded-xl transition-all shadow-lg hover:shadow-orange-500/50 border border-orange-500 text-sm md:text-base touch-manipulation"
                 >
                   Sell All ({(wonItems.reduce((sum, item) => sum + (item.price * 0.94), 0)).toFixed(2)} Stars)
                 </button>
@@ -304,12 +304,12 @@ export default function EnhancedCaseOpenModal({
             </div>
           )}
 
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3 text-gray-300">
-              <div className="w-5 h-5 bg-gray-700 rounded-full flex items-center justify-center">
-                <span className="text-xs">i</span>
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center gap-2 mb-2 md:mb-3 text-gray-300">
+              <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-700 rounded-full flex items-center justify-center shrink-0">
+                <span className="text-[10px] md:text-xs">i</span>
               </div>
-              <p className="text-sm">To open this case, enter the secret code</p>
+              <p className="text-xs md:text-sm">To open this case, enter the secret code</p>
             </div>
 
             <input
@@ -317,22 +317,22 @@ export default function EnhancedCaseOpenModal({
               placeholder="Secret Code"
               value={secretCode}
               onChange={(e) => setSecretCode(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors mb-4"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors mb-3 md:mb-4 text-sm md:text-base"
             />
 
             {!isFreeGift && (
-              <div className="mb-4">
-                <p className="text-gray-400 text-sm mb-2 font-semibold">Open Quantity:</p>
-                <div className="flex gap-2">
+              <div className="mb-3 md:mb-4">
+                <p className="text-gray-400 text-xs md:text-sm mb-2 font-semibold">Open Quantity:</p>
+                <div className="grid grid-cols-5 gap-1.5 md:gap-2">
                   {[1, 2, 3, 4, 5].map((count) => (
                     <button
                       key={count}
                       onClick={() => setOpenCount(count)}
                       disabled={spinning}
-                      className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all ${
+                      className={`py-2.5 md:py-3 px-2 md:px-4 rounded-lg font-bold transition-all active:scale-95 touch-manipulation text-sm md:text-base ${
                         openCount === count
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border border-blue-400'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {count}x
@@ -350,7 +350,7 @@ export default function EnhancedCaseOpenModal({
             {insufficientFunds ? (
               <button
                 onClick={onNavigateToCharge}
-                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 text-lg shadow-lg"
+                className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 active:scale-95 text-white font-bold py-3 md:py-4 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg touch-manipulation"
               >
                 <span>💰 Top Up Balance</span>
               </button>
@@ -358,23 +358,23 @@ export default function EnhancedCaseOpenModal({
               <button
                 onClick={handleSpin}
                 disabled={spinning}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 text-lg shadow-lg hover:shadow-blue-500/50"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 md:py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-lg hover:shadow-blue-500/50 touch-manipulation"
               >
                 <span>{spinning ? 'Spinning...' : openCount > 1 ? `Spin ${openCount}x` : 'Spin'}</span>
-                <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-lg">
-                  <span>{totalCost.toFixed(2)}</span>
-                  <TonIcon className="w-5 h-5" />
+                <div className="flex items-center gap-1 md:gap-1.5 bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg">
+                  <span className="text-sm md:text-base">{totalCost.toFixed(2)}</span>
+                  <TonIcon className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
               </button>
             )}
 
             {insufficientFunds && (
-              <p className="text-center text-orange-400 text-sm mt-3 font-semibold">
+              <p className="text-center text-orange-400 text-xs md:text-sm mt-2 md:mt-3 font-semibold">
                 ⚠️ Insufficient funds! Required {totalCost.toFixed(2)} Stars, you have {balance.toFixed(2)} Stars
               </p>
             )}
 
-            <p className="text-center text-gray-400 text-sm mt-3">
+            <p className="text-center text-gray-400 text-xs md:text-sm mt-2 md:mt-3">
               Search for secret codes in <span className="text-blue-400">@tatar_mafia_test.net</span>
             </p>
           </div>
@@ -382,17 +382,17 @@ export default function EnhancedCaseOpenModal({
           <div>
             <button
               onClick={() => setShowPrizes(!showPrizes)}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-3 w-full"
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2 md:mb-3 w-full touch-manipulation"
             >
-              <span className="text-sm font-semibold">Possible prizes:</span>
+              <span className="text-xs md:text-sm font-semibold">Possible prizes:</span>
               <ChevronDown
-                size={16}
-                className={`transform transition-transform ${showPrizes ? 'rotate-180' : ''}`}
+                size={14}
+                className={`md:w-4 md:h-4 transform transition-transform ${showPrizes ? 'rotate-180' : ''}`}
               />
             </button>
 
             {showPrizes && (
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
                 {items.map((item) => {
                   const rarityStyle = getRarityStyle(item.rarity);
                   return (
