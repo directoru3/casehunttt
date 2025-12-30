@@ -41,6 +41,9 @@ export default function EnhancedCaseOpenModal({
   const [currentSpinIndex, setCurrentSpinIndex] = useState(0);
   const [showWheels, setShowWheels] = useState(true);
   const [wheelsVisible, setWheelsVisible] = useState(true);
+  const [currentWinningItem, setCurrentWinningItem] = useState<Item | null>(null);
+  const [showCurrentWin, setShowCurrentWin] = useState(false);
+  const [allWinners, setAllWinners] = useState<Item[]>([]);
 
   const isFreeGift = caseData.id === 'free-gift';
   const totalCost = caseData.price * openCount;
@@ -67,6 +70,9 @@ export default function EnhancedCaseOpenModal({
     setCurrentSpinIndex(0);
     setShowWheels(true);
     setWheelsVisible(true);
+    setCurrentWinningItem(null);
+    setShowCurrentWin(false);
+    setAllWinners([]);
 
     const currentUser = telegramAuth.getCurrentUser();
 
@@ -106,7 +112,7 @@ export default function EnhancedCaseOpenModal({
         return index >= 0 ? index : 0;
       });
 
-      setWonItems(winners);
+      setAllWinners(winners);
       setWonIndexes(indexes);
     } catch (error) {
       console.error('Error opening case:', error);
@@ -118,29 +124,42 @@ export default function EnhancedCaseOpenModal({
   };
 
   const handleSpinComplete = () => {
-    setCurrentSpinIndex(prev => {
-      const newIndex = prev + 1;
+    const currentIndex = currentSpinIndex;
+    const winningItem = allWinners[currentIndex];
 
-      if (newIndex >= openCount) {
+    if (winningItem) {
+      setCurrentWinningItem(winningItem);
+      setShowCurrentWin(true);
+
+      setWonItems(prev => [...prev, winningItem]);
+
+      setTimeout(() => {
+        setShowCurrentWin(false);
+        setCurrentWinningItem(null);
+
         setTimeout(() => {
-          setSpinning(false);
+          const newIndex = currentIndex + 1;
+          setCurrentSpinIndex(newIndex);
 
-          setWheelsVisible(false);
-
-          setTimeout(() => {
-            setShowWheels(false);
-            setShowFullscreenWin(true);
-
+          if (newIndex >= openCount) {
             setTimeout(() => {
-              setShowFullscreenWin(false);
-              setShowDecision(true);
-            }, 3000);
-          }, 600);
-        }, 500);
-      }
+              setSpinning(false);
+              setWheelsVisible(false);
 
-      return newIndex;
-    });
+              setTimeout(() => {
+                setShowWheels(false);
+                setShowFullscreenWin(true);
+
+                setTimeout(() => {
+                  setShowFullscreenWin(false);
+                  setShowDecision(true);
+                }, 3000);
+              }, 600);
+            }, 300);
+          }
+        }, 300);
+      }, 800);
+    }
   };
 
   const handleKeepAll = () => {
@@ -217,41 +236,25 @@ export default function EnhancedCaseOpenModal({
           {showWheels && wheelItems.length > 0 && (
             <ErrorBoundary>
               <div
-                className={`flex flex-col md:flex-row gap-3 md:gap-6 mb-6 md:mb-8 items-center justify-center transition-all duration-500 ${
+                className={`flex flex-col items-center justify-center gap-4 mb-6 md:mb-8 transition-all duration-500 ${
                   wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
               >
-                <div className="flex-shrink-0 animate-fade-in scale-75 md:scale-100">
+                <div className="flex-shrink-0 animate-fade-in">
                   <FortuneWheel
                     items={wheelItems}
-                    winningIndex={wonIndexes[0] !== undefined ? wonIndexes[0] : 0}
-                    isSpinning={spinning && currentSpinIndex === 0}
+                    winningIndex={wonIndexes[currentSpinIndex] !== undefined ? wonIndexes[currentSpinIndex] : 0}
+                    isSpinning={spinning && currentSpinIndex < allWinners.length && !showCurrentWin}
                     onSpinComplete={handleSpinComplete}
                   />
                 </div>
 
-                {openCount > 1 && (
-                  <div className="flex flex-row md:flex-col gap-2 md:gap-4 justify-center overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
-                    {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
-                      <div
-                        key={index}
-                        className="mini-wheel-container animate-mini-wheel-in shrink-0"
-                        style={{
-                          animationDelay: `${index * 100}ms`,
-                          width: '80px',
-                          height: '80px'
-                        }}
-                      >
-                        <div style={{ transform: 'scale(0.2)', transformOrigin: 'center' }} className="md:scale-[0.3]">
-                          <FortuneWheel
-                            items={wheelItems}
-                            winningIndex={wonIndexes[index] !== undefined ? wonIndexes[index] : 0}
-                            isSpinning={spinning && currentSpinIndex === index}
-                            onSpinComplete={handleSpinComplete}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                {showCurrentWin && currentWinningItem && (
+                  <div className="animate-scale-in">
+                    <ItemRevealCard
+                      item={currentWinningItem}
+                      delay={0}
+                    />
                   </div>
                 )}
               </div>
@@ -488,16 +491,6 @@ export default function EnhancedCaseOpenModal({
           0% { transform: scale(0.3); opacity: 0; }
           100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes mini-wheel-in {
-          0% {
-            transform: scale(0.8);
-            opacity: 0;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-15px); }
@@ -522,19 +515,6 @@ export default function EnhancedCaseOpenModal({
         }
         .animate-scale-in {
           animation: scale-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .animate-mini-wheel-in {
-          animation: mini-wheel-in 0.4s ease-out forwards;
-          opacity: 0;
-        }
-        .mini-wheel-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2px solid rgba(59, 130, 246, 0.3);
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.3);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         .animate-bounce-slow {
           animation: bounce-slow 2s ease-in-out infinite;
