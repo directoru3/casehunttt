@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const ADMIN_IDS = [123456789];
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
+const ADMIN_IDS = [5218588916];
+const BOT_TOKEN = '8326473702:AAG7Ie92KSVj3n_Fw1XbJ9dpklpjfYRcIeU';
 
 interface TelegramMessage {
   message_id: number;
