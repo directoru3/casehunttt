@@ -36,6 +36,8 @@ export default function EnhancedCaseOpenModal({
   const [notification, setNotification] = useState<string | null>(null);
   const [openCount, setOpenCount] = useState(1);
   const [currentSpinIndex, setCurrentSpinIndex] = useState(0);
+  const [showWheels, setShowWheels] = useState(true);
+  const [wheelsVisible, setWheelsVisible] = useState(true);
 
   const isFreeGift = caseData.id === 'free-gift';
   const totalCost = caseData.price * openCount;
@@ -58,6 +60,8 @@ export default function EnhancedCaseOpenModal({
     setShowDecision(false);
     setShowFullscreenWin(false);
     setCurrentSpinIndex(0);
+    setShowWheels(true);
+    setWheelsVisible(true);
 
     const currentUser = telegramAuth.getCurrentUser();
 
@@ -102,12 +106,18 @@ export default function EnhancedCaseOpenModal({
     if (currentSpinIndex + 1 >= openCount) {
       setTimeout(() => {
         setSpinning(false);
-        setShowFullscreenWin(true);
+
+        setWheelsVisible(false);
 
         setTimeout(() => {
-          setShowFullscreenWin(false);
-          setShowDecision(true);
-        }, 3000);
+          setShowWheels(false);
+          setShowFullscreenWin(true);
+
+          setTimeout(() => {
+            setShowFullscreenWin(false);
+            setShowDecision(true);
+          }, 3000);
+        }, 600);
       }, 500);
     }
   };
@@ -137,6 +147,13 @@ export default function EnhancedCaseOpenModal({
     setShowDecision(false);
     setShowFullscreenWin(false);
     setCurrentSpinIndex(0);
+
+    setTimeout(() => {
+      setShowWheels(true);
+      setTimeout(() => {
+        setWheelsVisible(true);
+      }, 50);
+    }, 300);
   };
 
   return (
@@ -172,35 +189,47 @@ export default function EnhancedCaseOpenModal({
             <p className="text-gray-400">Spin the wheel to win amazing NFT items!</p>
           </div>
 
-          <div className="flex gap-4 mb-8 items-center justify-center">
-            <div className="flex-shrink-0">
-              <FortuneWheel
-                items={wheelItems}
-                winningIndex={wonIndexes[0] || 0}
-                isSpinning={spinning && currentSpinIndex === 0}
-                onSpinComplete={handleSpinComplete}
-              />
-            </div>
-
-            {openCount > 1 && (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
-                  <div
-                    key={index}
-                    className="relative"
-                    style={{ transform: 'scale(0.4)', transformOrigin: 'left center' }}
-                  >
-                    <FortuneWheel
-                      items={wheelItems}
-                      winningIndex={wonIndexes[index] || 0}
-                      isSpinning={spinning && currentSpinIndex === index}
-                      onSpinComplete={handleSpinComplete}
-                    />
-                  </div>
-                ))}
+          {showWheels && (
+            <div
+              className={`flex gap-6 mb-8 items-center justify-center transition-all duration-500 ${
+                wheelsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <div className="flex-shrink-0 animate-fade-in">
+                <FortuneWheel
+                  items={wheelItems}
+                  winningIndex={wonIndexes[0] || 0}
+                  isSpinning={spinning && currentSpinIndex === 0}
+                  onSpinComplete={handleSpinComplete}
+                />
               </div>
-            )}
-          </div>
+
+              {openCount > 1 && (
+                <div className="flex flex-col gap-4 justify-center">
+                  {Array.from({ length: openCount - 1 }, (_, i) => i + 1).map((index) => (
+                    <div
+                      key={index}
+                      className="mini-wheel-container animate-mini-wheel-in"
+                      style={{
+                        animationDelay: `${index * 100}ms`,
+                        width: '120px',
+                        height: '120px'
+                      }}
+                    >
+                      <div style={{ transform: 'scale(0.3)', transformOrigin: 'center' }}>
+                        <FortuneWheel
+                          items={wheelItems}
+                          winningIndex={wonIndexes[index] || 0}
+                          isSpinning={spinning && currentSpinIndex === index}
+                          onSpinComplete={handleSpinComplete}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {showDecision && wonItems.length > 0 && (
             <div className="mb-6 animate-fade-in">
@@ -450,6 +479,16 @@ export default function EnhancedCaseOpenModal({
           0% { transform: scale(0.3); opacity: 0; }
           100% { transform: scale(1); opacity: 1; }
         }
+        @keyframes mini-wheel-in {
+          0% {
+            transform: scale(0.8);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-15px); }
@@ -474,6 +513,19 @@ export default function EnhancedCaseOpenModal({
         }
         .animate-scale-in {
           animation: scale-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .animate-mini-wheel-in {
+          animation: mini-wheel-in 0.4s ease-out forwards;
+          opacity: 0;
+        }
+        .mini-wheel-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid rgba(59, 130, 246, 0.3);
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         .animate-bounce-slow {
           animation: bounce-slow 2s ease-in-out infinite;

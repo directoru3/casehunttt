@@ -40,6 +40,18 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const [rotation, setRotation] = useState(0);
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>();
+  const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
+
+  useEffect(() => {
+    items.forEach(item => {
+      if (!imagesRef.current[item.image]) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = item.image;
+        imagesRef.current[item.image] = img;
+      }
+    });
+  }, [items]);
 
   useEffect(() => {
     if (!isSpinning) return;
@@ -127,20 +139,27 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.shadowBlur = 15;
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 2;
       ctx.shadowBlur = 0;
       ctx.stroke();
 
-      ctx.save();
-      ctx.rotate(startAngle + segmentAngle / 2);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 13px system-ui';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 6;
-      ctx.fillText(item.name, radius * 0.65, 5);
-      ctx.restore();
+      const img = imagesRef.current[item.image];
+      if (img && img.complete) {
+        ctx.save();
+        ctx.rotate(startAngle + segmentAngle / 2);
+        const imgSize = 50;
+        const imgX = radius * 0.65 - imgSize / 2;
+        const imgY = -imgSize / 2;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(radius * 0.65, 0, imgSize / 2 + 2, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+        ctx.restore();
+      }
     });
 
     ctx.restore();
