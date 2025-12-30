@@ -15,7 +15,6 @@ export default function Header({ balance = 0 }: HeaderProps) {
           </div>
           <div>
             <h1 className="text-white font-bold text-sm md:text-lg leading-tight">CaseHunt</h1>
-            <p className="text-blue-400 text-[10px] md:text-xs leading-tight">Open & Win</p>
           </div>
         </div>
 
