@@ -104,63 +104,47 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       return;
     }
 
-    setIsAnticipating(true);
+    setIsAnticipating(false);
 
-    const anticipationDuration = 300;
-    setTimeout(() => {
-      setIsAnticipating(false);
+    const duration = 5000;
+    const extraSpins = 5;
+    const segmentAngle = 360 / items.length;
+    const targetRotation = 360 * extraSpins + (360 - (winningIndex * segmentAngle) - segmentAngle / 2);
 
-      const duration = 6000;
-      const extraSpins = 7;
-      const segmentAngle = 360 / items.length;
-      const targetRotation = 360 * extraSpins + (360 - (winningIndex * segmentAngle) - segmentAngle / 2);
+    const easeOutQuart = (t: number): number => {
+      return 1 - Math.pow(1 - t, 4);
+    };
 
-      const easeOutBounce = (t: number): number => {
-        const n1 = 7.5625;
-        const d1 = 2.75;
+    const animate = (currentTime: number) => {
+      if (!startTimeRef.current) {
+        startTimeRef.current = currentTime;
+      }
 
-        if (t < 1 / d1) {
-          return n1 * t * t;
-        } else if (t < 2 / d1) {
-          return n1 * (t -= 1.5 / d1) * t + 0.75;
-        } else if (t < 2.5 / d1) {
-          return n1 * (t -= 2.25 / d1) * t + 0.9375;
-        } else {
-          return n1 * (t -= 2.625 / d1) * t + 0.984375;
-        }
-      };
+      const elapsed = currentTime - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
 
-      const animate = (currentTime: number) => {
-        if (!startTimeRef.current) {
-          startTimeRef.current = currentTime;
-        }
+      const easeProgress = easeOutQuart(progress);
+      const currentRotation = targetRotation * easeProgress;
 
-        const elapsed = currentTime - startTimeRef.current;
-        const progress = Math.min(elapsed / duration, 1);
+      setRotation(currentRotation);
 
-        const easeProgress = easeOutBounce(progress);
-        const currentRotation = targetRotation * easeProgress;
+      const currentSegment = Math.floor((currentRotation % 360) / segmentAngle);
+      if (progress > 0.7) {
+        setHighlightedSegment(currentSegment % items.length);
+      }
 
-        setRotation(currentRotation);
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        startTimeRef.current = undefined;
+        setHighlightedSegment(winningIndex);
+        setTimeout(() => {
+          onSpinComplete();
+        }, 500);
+      }
+    };
 
-        const currentSegment = Math.floor((currentRotation % 360) / segmentAngle);
-        if (progress > 0.7) {
-          setHighlightedSegment(currentSegment % items.length);
-        }
-
-        if (progress < 1) {
-          animationRef.current = requestAnimationFrame(animate);
-        } else {
-          startTimeRef.current = undefined;
-          setHighlightedSegment(winningIndex);
-          setTimeout(() => {
-            onSpinComplete();
-          }, 500);
-        }
-      };
-
-      animationRef.current = requestAnimationFrame(animate);
-    }, anticipationDuration);
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       if (animationRef.current) {
@@ -192,9 +176,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
     ctx.save();
     ctx.translate(centerX, centerY);
-
-    const shakeAmount = isAnticipating ? Math.sin(Date.now() / 50) * 3 : 0;
-    ctx.rotate(((rotation + shakeAmount) * Math.PI) / 180);
+    ctx.rotate((rotation * Math.PI) / 180);
 
     const segmentAngle = (2 * Math.PI) / items.length;
 
@@ -346,22 +328,13 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }
 
   return (
-    <div className={`relative flex items-center justify-center transition-all duration-300 ${isAnticipating ? 'animate-anticipation' : ''}`}>
+    <div className="relative flex items-center justify-center">
       <canvas
         ref={canvasRef}
         width={400}
         height={400}
         className="max-w-full h-auto"
       />
-      <style>{`
-        @keyframes anticipation {
-          0%, 100% { transform: rotate(-2deg) scale(0.98); }
-          50% { transform: rotate(2deg) scale(1.02); }
-        }
-        .animate-anticipation {
-          animation: anticipation 0.15s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 };

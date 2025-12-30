@@ -7,7 +7,6 @@ import LiveDropsFeed from './components/LiveDropsFeed';
 import FilterTabs from './components/FilterTabs';
 import CaseCard from './components/CaseCard';
 import CaseOpenModal from './components/CaseOpenModal';
-import EnhancedCaseOpenModal from './components/EnhancedCaseOpenModal';
 import MultiCaseOpenModal from './components/MultiCaseOpenModal';
 import MultiCaseResultModal from './components/MultiCaseResultModal';
 import DepositModal from './components/DepositModal';
@@ -16,12 +15,13 @@ import BottomNav from './components/BottomNav';
 import ProfilePage from './pages/ProfilePage';
 import UpgradePage from './pages/UpgradePage';
 import CrashPage from './pages/CrashPage';
+import CaseOpenPage from './pages/CaseOpenPage';
 import { mockCases, mockItems } from './data/mockData';
 import { Case, Item } from './lib/supabase';
 import { telegramAuth, TelegramUser } from './utils/telegramAuth';
 import { balanceManager } from './utils/balanceManager';
 
-type Page = 'main' | 'profile' | 'upgrade' | 'crash';
+type Page = 'main' | 'profile' | 'upgrade' | 'crash' | 'case-open';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -289,6 +289,7 @@ function App() {
                       setShowSecretCode(true);
                     } else {
                       setSelectedCase(caseData);
+                      setCurrentPage('case-open');
                     }
                   }}
                 />
@@ -325,7 +326,25 @@ function App() {
         />
       )}
 
-      {selectedCase && selectedCase.id === 'free-gift' ? (
+      {currentPage === 'case-open' && selectedCase && (
+        <CaseOpenPage
+          caseData={selectedCase}
+          items={mockItems[selectedCase.id] || []}
+          onBack={() => {
+            setSelectedCase(null);
+            setCurrentPage('main');
+          }}
+          onKeepItems={handleKeepItems}
+          onSellItems={handleSellItems}
+          balance={balance}
+          onNavigateToCharge={() => {
+            setSelectedCase(null);
+            setCurrentPage('main');
+          }}
+        />
+      )}
+
+      {selectedCase && selectedCase.id === 'free-gift' && currentPage === 'main' && (
         <CaseOpenModal
           caseData={selectedCase}
           items={mockItems[selectedCase.id] || []}
@@ -337,19 +356,7 @@ function App() {
             setSelectedCase(null);
           }}
         />
-      ) : selectedCase ? (
-        <EnhancedCaseOpenModal
-          caseData={selectedCase}
-          items={mockItems[selectedCase.id] || []}
-          onClose={() => setSelectedCase(null)}
-          onKeepItems={handleKeepItems}
-          onSellItems={handleSellItems}
-          balance={balance}
-          onNavigateToCharge={() => {
-            setSelectedCase(null);
-          }}
-        />
-      ) : null}
+      )}
 
       {showMultiOpen && (
         <MultiCaseOpenModal
@@ -389,7 +396,9 @@ function App() {
         />
       )}
 
-      <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
+      {currentPage !== 'case-open' && (
+        <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
+      )}
     </div>
   );
 }
