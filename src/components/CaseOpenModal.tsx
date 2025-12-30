@@ -1,5 +1,5 @@
 import { ChevronDown, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Case, Item } from '../lib/supabase';
 import { getRarityStyle } from '../utils/rarityStyles';
 import AnimatedNFT from './AnimatedNFT';

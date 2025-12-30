@@ -22,6 +22,14 @@ const rarityColors: Record<string, string> = {
   common: '#6B7280'
 };
 
+const rarityGlows: Record<string, string> = {
+  legendary: 'rgba(255, 215, 0, 0.6)',
+  mythical: 'rgba(157, 78, 221, 0.6)',
+  rare: 'rgba(59, 130, 246, 0.6)',
+  uncommon: 'rgba(16, 185, 129, 0.6)',
+  common: 'rgba(107, 116, 128, 0.4)'
+};
+
 export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   items,
   winningIndex,
@@ -80,9 +88,15 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 10;
+    const radius = Math.min(centerX, centerY) - 15;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate((rotation * Math.PI) / 180);
@@ -99,52 +113,79 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.closePath();
 
       const color = rarityColors[item.rarity] || '#6B7280';
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(1, adjustBrightness(color, -30));
+      const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
+      gradient.addColorStop(0, adjustBrightness(color, 40));
+      gradient.addColorStop(0.6, color);
+      gradient.addColorStop(1, adjustBrightness(color, -40));
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.lineWidth = 2;
+      const glowColor = rarityGlows[item.rarity] || 'rgba(107, 116, 128, 0.4)';
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 0;
       ctx.stroke();
 
       ctx.save();
       ctx.rotate(startAngle + segmentAngle / 2);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(item.name, radius * 0.7, 5);
+      ctx.font = 'bold 13px system-ui';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 6;
+      ctx.fillText(item.name, radius * 0.65, 5);
       ctx.restore();
     });
 
     ctx.restore();
 
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
     ctx.beginPath();
-    ctx.moveTo(centerX, 20);
-    ctx.lineTo(centerX - 15, 50);
-    ctx.lineTo(centerX + 15, 50);
+    ctx.moveTo(centerX, 15);
+    ctx.lineTo(centerX - 18, 50);
+    ctx.lineTo(centerX + 18, 50);
     ctx.closePath();
-    ctx.fillStyle = '#FF0000';
+    const pointerGradient = ctx.createLinearGradient(centerX, 15, centerX, 50);
+    pointerGradient.addColorStop(0, '#FF6B6B');
+    pointerGradient.addColorStop(1, '#FF0000');
+    ctx.fillStyle = pointerGradient;
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 45, 0, 2 * Math.PI);
+    const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 45);
+    centerGradient.addColorStop(0, '#3B82F6');
+    centerGradient.addColorStop(1, '#1E40AF');
+    ctx.fillStyle = centerGradient;
+    ctx.fill();
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 5;
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 40, 0, 2 * Math.PI);
-    ctx.fillStyle = '#1F2937';
-    ctx.fill();
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px sans-serif';
+    ctx.font = 'bold 18px system-ui';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 4;
     ctx.fillText('SPIN', centerX, centerY);
 
   }, [items, rotation]);

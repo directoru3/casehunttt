@@ -7,6 +7,7 @@ import LiveDropsFeed from './components/LiveDropsFeed';
 import FilterTabs from './components/FilterTabs';
 import CaseCard from './components/CaseCard';
 import CaseOpenModal from './components/CaseOpenModal';
+import EnhancedCaseOpenModal from './components/EnhancedCaseOpenModal';
 import MultiCaseOpenModal from './components/MultiCaseOpenModal';
 import MultiCaseResultModal from './components/MultiCaseResultModal';
 import DepositModal from './components/DepositModal';
@@ -147,8 +148,23 @@ function App() {
     saveToLocalStorage(newInventory, newBalance);
   };
 
+  const handleKeepItems = (items: Item[], totalCost: number) => {
+    const newInventory = [...inventory, ...items];
+    const newBalance = balance - totalCost;
+    setInventory(newInventory);
+    setBalance(newBalance);
+    saveToLocalStorage(newInventory, newBalance);
+  };
+
   const handleSellItemFromCase = (_item: Item, sellPrice: number, casePrice: number) => {
     const newBalance = balance - casePrice + sellPrice;
+    setBalance(newBalance);
+    saveToLocalStorage(inventory, newBalance);
+  };
+
+  const handleSellItems = (items: Item[], totalCost: number) => {
+    const totalSellPrice = items.reduce((sum, item) => sum + (item.price * 0.94), 0);
+    const newBalance = balance - totalCost + totalSellPrice;
     setBalance(newBalance);
     saveToLocalStorage(inventory, newBalance);
   };
@@ -319,7 +335,7 @@ function App() {
         />
       )}
 
-      {selectedCase && (
+      {selectedCase && selectedCase.id === 'free-gift' ? (
         <CaseOpenModal
           caseData={selectedCase}
           items={mockItems[selectedCase.id] || []}
@@ -331,7 +347,19 @@ function App() {
             setSelectedCase(null);
           }}
         />
-      )}
+      ) : selectedCase ? (
+        <EnhancedCaseOpenModal
+          caseData={selectedCase}
+          items={mockItems[selectedCase.id] || []}
+          onClose={() => setSelectedCase(null)}
+          onKeepItems={handleKeepItems}
+          onSellItems={handleSellItems}
+          balance={balance}
+          onNavigateToCharge={() => {
+            setSelectedCase(null);
+          }}
+        />
+      ) : null}
 
       {showMultiOpen && (
         <MultiCaseOpenModal
