@@ -7,6 +7,8 @@ import TonIcon from './TonIcon';
 import { FortuneWheel } from './FortuneWheel';
 import { telegramAuth } from '../utils/telegramAuth';
 import ErrorBoundary from './ErrorBoundary';
+import ItemRevealCard from './ItemRevealCard';
+import MultiOpenProgress from './MultiOpenProgress';
 
 interface EnhancedCaseOpenModalProps {
   caseData: Case;
@@ -178,6 +180,10 @@ export default function EnhancedCaseOpenModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-2 md:p-4">
+        {spinning && openCount > 1 && (
+          <MultiOpenProgress current={currentSpinIndex + 1} total={openCount} />
+        )}
+
         {notification && (
           <div className="fixed top-20 md:top-24 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-down px-3">
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-2xl flex items-center gap-2 border border-green-400">
@@ -254,37 +260,19 @@ export default function EnhancedCaseOpenModal({
 
           {showDecision && wonItems.length > 0 && (
             <div className="mb-4 md:mb-6 animate-fade-in">
-              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 text-center">Your Winnings!</h3>
+              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 text-center flex items-center justify-center gap-2">
+                <Sparkles className="text-yellow-400 animate-pulse" />
+                Your Winnings!
+                <Sparkles className="text-yellow-400 animate-pulse" />
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
-                {wonItems.map((item, index) => {
-                  const rarityStyle = getRarityStyle(item.rarity);
-                  return (
-                    <div
-                      key={`${item.id}-${index}`}
-                      className={`${rarityStyle.bg} rounded-xl p-4 border-2 ${rarityStyle.border} ${rarityStyle.shadow} ${rarityStyle.glow} animate-scale-in`}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="relative mb-3">
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="w-full aspect-square object-cover rounded-lg border-2 border-white/30"
-                        />
-                        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
-                          WON!
-                        </div>
-                      </div>
-                      <p className="text-white font-bold text-sm mb-1 truncate">{item.name}</p>
-                      <p className={`${rarityStyle.text} text-xs capitalize font-semibold mb-2`}>
-                        {item.rarity}
-                      </p>
-                      <div className="flex items-center gap-1 justify-center">
-                        <TonIcon className="w-4 h-4" />
-                        <span className="text-white text-sm font-bold">{item.price}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                {wonItems.map((item, index) => (
+                  <ItemRevealCard
+                    key={`${item.id}-${index}`}
+                    item={item}
+                    delay={index * 150}
+                  />
+                ))}
               </div>
 
               <div className="flex flex-col md:flex-row gap-2 md:gap-3">

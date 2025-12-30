@@ -40,6 +40,8 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const [rotation, setRotation] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [renderError, setRenderError] = useState(false);
+  const [isAnticipating, setIsAnticipating] = useState(false);
+  const [highlightedSegment, setHighlightedSegment] = useState(-1);
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>();
   const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
@@ -97,35 +99,68 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }, [items]);
 
   useEffect(() => {
-    if (!isSpinning) return;
+    if (!isSpinning) {
+      setHighlightedSegment(-1);
+      return;
+    }
 
-    const duration = 5000;
-    const extraSpins = 5;
-    const segmentAngle = 360 / items.length;
-    const targetRotation = 360 * extraSpins + (360 - (winningIndex * segmentAngle) - segmentAngle / 2);
+    setIsAnticipating(true);
 
-    const animate = (currentTime: number) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = currentTime;
-      }
+    const anticipationDuration = 300;
+    setTimeout(() => {
+      setIsAnticipating(false);
 
-      const elapsed = currentTime - startTimeRef.current;
-      const progress = Math.min(elapsed / duration, 1);
+      const duration = 6000;
+      const extraSpins = 7;
+      const segmentAngle = 360 / items.length;
+      const targetRotation = 360 * extraSpins + (360 - (winningIndex * segmentAngle) - segmentAngle / 2);
 
-      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-      const currentRotation = targetRotation * easeOutCubic;
+      const easeOutBounce = (t: number): number => {
+        const n1 = 7.5625;
+        const d1 = 2.75;
 
-      setRotation(currentRotation);
+        if (t < 1 / d1) {
+          return n1 * t * t;
+        } else if (t < 2 / d1) {
+          return n1 * (t -= 1.5 / d1) * t + 0.75;
+        } else if (t < 2.5 / d1) {
+          return n1 * (t -= 2.25 / d1) * t + 0.9375;
+        } else {
+          return n1 * (t -= 2.625 / d1) * t + 0.984375;
+        }
+      };
 
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        startTimeRef.current = undefined;
-        setTimeout(onSpinComplete, 300);
-      }
-    };
+      const animate = (currentTime: number) => {
+        if (!startTimeRef.current) {
+          startTimeRef.current = currentTime;
+        }
 
-    animationRef.current = requestAnimationFrame(animate);
+        const elapsed = currentTime - startTimeRef.current;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const easeProgress = easeOutBounce(progress);
+        const currentRotation = targetRotation * easeProgress;
+
+        setRotation(currentRotation);
+
+        const currentSegment = Math.floor((currentRotation % 360) / segmentAngle);
+        if (progress > 0.7) {
+          setHighlightedSegment(currentSegment % items.length);
+        }
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        } else {
+          startTimeRef.current = undefined;
+          setHighlightedSegment(winningIndex);
+          setTimeout(() => {
+            onSpinComplete();
+          }, 500);
+        }
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+    }, anticipationDuration);
 
     return () => {
       if (animationRef.current) {
@@ -157,7 +192,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate((rotation * Math.PI) / 180);
+
+    const shakeAmount = isAnticipating ? Math.sin(Date.now() / 50) * 3 : 0;
+    ctx.rotate(((rotation + shakeAmount) * Math.PI) / 180);
 
     const segmentAngle = (2 * Math.PI) / items.length;
 
@@ -174,19 +211,28 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.arc(0, 0, radius, startAngle, endAngle);
       ctx.closePath();
 
+      const isHighlighted = index === highlightedSegment;
       const color = rarityColors[item.rarity] || '#6B7280';
       const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
-      gradient.addColorStop(0, adjustBrightness(color, 40));
-      gradient.addColorStop(0.6, color);
-      gradient.addColorStop(1, adjustBrightness(color, -40));
+
+      if (isHighlighted) {
+        gradient.addColorStop(0, adjustBrightness(color, 80));
+        gradient.addColorStop(0.6, adjustBrightness(color, 40));
+        gradient.addColorStop(1, color);
+      } else {
+        gradient.addColorStop(0, adjustBrightness(color, 40));
+        gradient.addColorStop(0.6, color);
+        gradient.addColorStop(1, adjustBrightness(color, -40));
+      }
+
       ctx.fillStyle = gradient;
       ctx.fill();
 
       const glowColor = rarityGlows[item.rarity] || 'rgba(107, 116, 128, 0.4)';
-      ctx.strokeStyle = glowColor;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 15;
+      ctx.strokeStyle = isHighlighted ? adjustBrightness(color, 60) : glowColor;
+      ctx.lineWidth = isHighlighted ? 5 : 3;
+      ctx.shadowColor = isHighlighted ? color : glowColor;
+      ctx.shadowBlur = isHighlighted ? 25 : 15;
       ctx.stroke();
 
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -267,7 +313,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       console.error('Error rendering wheel:', error);
       setRenderError(true);
     }
-  }, [items, rotation, imagesLoaded]);
+  }, [items, rotation, imagesLoaded, highlightedSegment, isAnticipating]);
 
   const adjustBrightness = (color: string, percent: number): string => {
     const num = parseInt(color.replace('#', ''), 16);
@@ -300,13 +346,22 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className={`relative flex items-center justify-center transition-all duration-300 ${isAnticipating ? 'animate-anticipation' : ''}`}>
       <canvas
         ref={canvasRef}
         width={400}
         height={400}
         className="max-w-full h-auto"
       />
+      <style>{`
+        @keyframes anticipation {
+          0%, 100% { transform: rotate(-2deg) scale(0.98); }
+          50% { transform: rotate(2deg) scale(1.02); }
+        }
+        .animate-anticipation {
+          animation: anticipation 0.15s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
