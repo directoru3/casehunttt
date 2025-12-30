@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
     if (text === '/start') {
       await sendTelegramMessage(
         chatId,
-        '🎮 <b>NFT Gifts Admin Bot</b>\n\n' +
+        '🎮 <b>CaseHunt Admin Panel</b>\n\n' +
         'Available commands:\n' +
         '/stats - Get platform statistics\n' +
         '/users - List recent users\n' +
