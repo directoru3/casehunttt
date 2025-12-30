@@ -38,19 +38,54 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>();
   const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
+  const loadedCountRef = useRef(0);
 
   useEffect(() => {
+    if (items.length === 0) return;
+
+    loadedCountRef.current = 0;
+    setImagesLoaded(false);
+
+    const checkAllLoaded = () => {
+      if (loadedCountRef.current >= items.length) {
+        setImagesLoaded(true);
+      }
+    };
+
     items.forEach(item => {
-      if (!imagesRef.current[item.image]) {
+      if (!item.image) {
+        loadedCountRef.current++;
+        checkAllLoaded();
+        return;
+      }
+
+      if (imagesRef.current[item.image] && imagesRef.current[item.image].complete) {
+        loadedCountRef.current++;
+        checkAllLoaded();
+      } else if (!imagesRef.current[item.image]) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          loadedCountRef.current++;
+          checkAllLoaded();
+        };
+        img.onerror = () => {
+          console.error('Failed to load image:', item.image);
+          loadedCountRef.current++;
+          checkAllLoaded();
+        };
         img.src = item.image;
         imagesRef.current[item.image] = img;
       }
     });
+
+    if (items.length === 0) {
+      setImagesLoaded(true);
+    }
   }, [items]);
 
   useEffect(() => {
@@ -97,6 +132,8 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    if (items.length === 0) return;
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
@@ -207,7 +244,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     ctx.shadowBlur = 4;
     ctx.fillText('SPIN', centerX, centerY);
 
-  }, [items, rotation]);
+  }, [items, rotation, imagesLoaded]);
 
   const adjustBrightness = (color: string, percent: number): string => {
     const num = parseInt(color.replace('#', ''), 16);
