@@ -73,22 +73,27 @@ export default function LiveDropsFeed() {
   }
 
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden mb-6">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 flex items-center gap-2">
-        <Sparkles size={18} className="text-white animate-pulse" />
+    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden mb-4 md:mb-6 shadow-xl">
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 px-3 md:px-4 py-2 md:py-2.5 flex items-center gap-2">
+        <div className="bg-white/20 backdrop-blur-sm p-1 rounded-lg">
+          <Sparkles size={14} className="text-white animate-pulse md:w-4 md:h-4" />
+        </div>
         <h3 className="text-white font-bold text-sm md:text-base">Live Drops</h3>
+        <div className="ml-auto bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+          <span className="text-white text-xs font-semibold">{drops.length}</span>
+        </div>
       </div>
-      <div className="p-3 max-h-[200px] overflow-y-auto custom-scrollbar">
-        <div className="space-y-2">
+      <div className="p-2 md:p-3 max-h-[180px] md:max-h-[200px] overflow-y-auto custom-scrollbar">
+        <div className="space-y-1.5 md:space-y-2">
           {drops.map((drop, index) => {
             const rarityStyle = getRarityStyle(drop.item_rarity);
             return (
               <div
                 key={drop.id}
-                className={`flex items-center gap-3 p-2 rounded-lg bg-gray-800/50 border ${rarityStyle.border} animate-fade-in`}
+                className={`flex items-center gap-2 md:gap-3 p-2 md:p-2.5 rounded-xl bg-gradient-to-r from-gray-800/70 to-gray-800/50 border ${rarityStyle.border} animate-fade-in hover:scale-[1.02] transition-transform backdrop-blur-sm`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-700 flex-shrink-0">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border-2 border-gray-600 shadow-lg">
                   {drop.user_photo_url ? (
                     <img
                       src={drop.user_photo_url}
@@ -107,16 +112,16 @@ export default function LiveDropsFeed() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-xs md:text-sm truncate">
-                    <span className="font-semibold">{drop.username}</span>
+                  <p className="text-white text-xs md:text-sm truncate leading-tight">
+                    <span className="font-bold">{drop.username}</span>
                     <span className="text-gray-400"> won </span>
-                    <span className={`font-semibold ${rarityStyle.text}`}>{drop.item_name}</span>
+                    <span className={`font-bold ${rarityStyle.text}`}>{drop.item_name}</span>
                   </p>
-                  <p className="text-gray-500 text-xs truncate">
+                  <p className="text-gray-500 text-[10px] md:text-xs truncate leading-tight mt-0.5">
                     from {drop.case_name}
                   </p>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${rarityStyle.bg} animate-pulse flex-shrink-0`}></div>
+                <div className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full ${rarityStyle.bg} animate-pulse flex-shrink-0 shadow-lg`}></div>
               </div>
             );
           })}
@@ -131,15 +136,15 @@ export default function LiveDropsFeed() {
           animation: fade-in 0.3s ease-out;
         }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(0, 0, 0, 0.2);
-          border-radius: 3px;
+          border-radius: 2px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(59, 130, 246, 0.5);
-          border-radius: 3px;
+          border-radius: 2px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(59, 130, 246, 0.7);
