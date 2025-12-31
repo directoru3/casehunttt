@@ -7,7 +7,7 @@ export interface TonPaymentResult {
   error?: string;
 }
 
-const RECEIVER_ADDRESS = 'UQCt2VhG9AJhKkMJl8WUNawLCJlPMmjLXWWXnvGVhGqhqV7P';
+const RECEIVER_ADDRESS = 'UQCBrkaei_hccAzBSqe-k1SI9ZkgLLN_sjl_OfvEbtThFx9R';
 const TON_TO_COINS_RATE = 10;
 
 function stringToBase64(str: string): string {

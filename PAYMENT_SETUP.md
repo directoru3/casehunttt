@@ -28,35 +28,25 @@ Your application now supports **two payment methods**:
 
 ## Setup Instructions
 
-### 1. Telegram Bot Configuration
+### 1. Telegram Bot Configuration ✅ CONFIGURED
 
-To enable Telegram Stars payments, you need to configure your Telegram Bot Token:
-
-1. Open the `.env` file in your project root
-2. Replace `YOUR_BOT_TOKEN_HERE` with your actual bot token:
+Your Telegram Bot Token has been configured:
 
 ```env
-TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_BOT_TOKEN=8508567870:AAE2S7I7jPjmN6LNpf6Gropt8vJ4w9udLgA
 ```
 
-**How to get a bot token:**
-1. Open Telegram and search for [@BotFather](https://t.me/botfather)
-2. Send `/newbot` and follow the instructions
-3. Copy the token provided by BotFather
-4. Paste it into your `.env` file
+**Status:** ✅ Ready to accept Telegram Stars payments
 
-### 2. TON Wallet Configuration
+### 2. TON Wallet Configuration ✅ CONFIGURED
 
-The TON payment system uses TON Connect for wallet integration. The receiver address is pre-configured:
+Your TON wallet address has been configured as the payment receiver:
 
 ```
-RECEIVER_ADDRESS: UQCt2VhG9AJhKkMJl8WUNawLCJlPMmjLXWWXnvGVhGqhqV7P
+RECEIVER_ADDRESS: UQCBrkaei_hccAzBSqe-k1SI9ZkgLLN_sjl_OfvEbtThFx9R
 ```
 
-**To change the receiver address:**
-1. Open `src/utils/tonPayments.ts`
-2. Update the `RECEIVER_ADDRESS` constant with your wallet address
-3. Rebuild the project: `npm run build`
+**Status:** ✅ All TON payments will be sent to your Tonkeeper wallet
 
 ### 3. Database Setup
 
