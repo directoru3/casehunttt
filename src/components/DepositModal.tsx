@@ -14,10 +14,11 @@ interface DepositModalProps {
 type PaymentMethod = 'stars' | 'ton';
 
 const STARS_PRESET_AMOUNTS = [
-  { stars: 100, coins: 10 },
-  { stars: 500, coins: 50 },
-  { stars: 1000, coins: 100 },
-  { stars: 2500, coins: 250 },
+  { stars: 100, coins: 0.5, bonus: '0%' },
+  { stars: 250, coins: 1.5, bonus: '+20%' },
+  { stars: 500, coins: 3.5, bonus: '+40%' },
+  { stars: 1000, coins: 8, bonus: '+60%' },
+  { stars: 2500, coins: 22, bonus: '+76%' },
 ];
 
 const TON_PRESET_AMOUNTS = [
@@ -27,7 +28,7 @@ const TON_PRESET_AMOUNTS = [
   { ton: 25, coins: 250 },
 ];
 
-const STARS_TO_COINS_RATE = 0.1;
+const STARS_TO_COINS_RATE = 0.005;
 const TON_TO_COINS_RATE = 10;
 
 export default function DepositModal({ onClose, onDeposit, currentBalance }: DepositModalProps) {
@@ -210,17 +211,23 @@ export default function DepositModal({ onClose, onDeposit, currentBalance }: Dep
             <div className="grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
               {presetAmounts.map((preset) => {
                 const amount = paymentMethod === 'stars' ? preset.stars : (preset as any).ton;
+                const bonus = paymentMethod === 'stars' ? (preset as any).bonus : null;
                 return (
                   <button
                     key={amount}
                     onClick={() => handlePresetClick(amount)}
                     disabled={isProcessing}
-                    className={`min-h-[72px] md:min-h-[80px] p-3 md:p-4 rounded-xl border-2 transition-all touch-manipulation ${
+                    className={`relative min-h-[72px] md:min-h-[80px] p-3 md:p-4 rounded-xl border-2 transition-all touch-manipulation ${
                       selectedAmount === amount
                         ? 'bg-yellow-600/20 border-yellow-500 shadow-lg shadow-yellow-500/30'
                         : 'bg-gray-800/50 border-gray-700 hover:border-yellow-500/50'
                     } disabled:opacity-50`}
                   >
+                    {bonus && bonus !== '0%' && (
+                      <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+                        {bonus}
+                      </div>
+                    )}
                     <div className="flex items-center justify-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
                       {currencyIcon}
                       <span className="text-white font-bold text-lg md:text-xl">{amount}</span>

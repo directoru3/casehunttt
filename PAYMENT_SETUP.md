@@ -14,8 +14,13 @@ Your application now supports **two payment methods**:
 
 ### ✅ Telegram Stars Payment
 - In-app Telegram payment system
-- Exchange rate: **1 Star = 0.1 TON**
-- Preset amounts: 100, 500, 1000, 2500 Stars
+- Base exchange rate: **100 Stars = 0.5 TON**
+- Bonus packages with increasing value:
+  - 100 Stars → 0.5 TON (base rate)
+  - 250 Stars → 1.5 TON (+20% bonus)
+  - 500 Stars → 3.5 TON (+40% bonus)
+  - 1000 Stars → 8 TON (+60% bonus)
+  - 2500 Stars → 22 TON (+76% bonus)
 - Secure invoice creation via Telegram Bot API
 - Payment verification and balance crediting
 
@@ -92,8 +97,20 @@ The following Supabase Edge Functions have been deployed:
 
 ## Exchange Rates
 
-- **Telegram Stars**: 1 Star = 0.1 TON (game currency)
-- **TON Wallet**: 1 TON = 10 TON (game currency)
+### Telegram Stars (Progressive Bonus System)
+Higher purchases get better rates to encourage larger deposits:
+
+| Package | Stars | TON Received | Bonus |
+|---------|-------|--------------|-------|
+| Starter | 100 | 0.5 | Base rate |
+| Popular | 250 | 1.5 | +20% |
+| Value | 500 | 3.5 | +40% |
+| Premium | 1000 | 8 | +60% |
+| Ultimate | 2500 | 22 | +76% |
+
+### TON Wallet (Direct Payment)
+- **1 TON = 10 game coins** (fixed rate)
+- Available packages: 1 TON, 5 TON, 10 TON, 25 TON
 
 ## Testing
 
@@ -102,7 +119,7 @@ The following Supabase Edge Functions have been deployed:
 1. Open the app in Telegram WebApp
 2. Click "Deposit" button
 3. Select "Telegram Stars" payment method
-4. Choose an amount (e.g., 100 Stars = 10 TON)
+4. Choose an amount (e.g., 100 Stars = 0.5 TON, or 1000 Stars = 8 TON for 60% bonus)
 5. Complete payment in Telegram
 6. Verify balance update
 

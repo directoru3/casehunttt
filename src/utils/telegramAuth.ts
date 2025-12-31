@@ -54,6 +54,7 @@ export class TelegramAuthService {
     const webApp = window.Telegram?.WebApp;
     if (!webApp) {
       console.log('[TelegramAuth] WebApp not available');
+      this.createDemoUser();
       return;
     }
 
