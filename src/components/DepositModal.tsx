@@ -80,8 +80,15 @@ export default function DepositModal({ onClose, onDeposit, currentBalance }: Dep
       let result;
 
       if (paymentMethod === 'stars') {
+        console.log('[DepositModal] Starting Telegram Stars payment');
+        console.log('[DepositModal] WebApp available:', telegramPayments.isAvailable());
+        console.log('[DepositModal] Window.Telegram:', !!window.Telegram);
+        console.log('[DepositModal] Window.Telegram.WebApp:', !!window.Telegram?.WebApp);
+
         if (!telegramPayments.isAvailable()) {
-          throw new Error('Telegram WebApp not available. Please open this app in Telegram.');
+          const errorMsg = 'Telegram WebApp not detected. Please open this app through Telegram.';
+          console.error('[DepositModal]', errorMsg);
+          throw new Error(errorMsg);
         }
         result = await telegramPayments.processPayment(selectedAmount, coinsToAdd);
       } else {

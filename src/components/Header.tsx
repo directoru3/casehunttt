@@ -17,21 +17,33 @@ interface TelegramUser {
 
 export default function Header({ balance = 0 }: HeaderProps) {
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const user = telegramAuth.getCurrentUser();
-    if (user) {
-      setTelegramUser(user);
-    }
+    const updateUserInfo = () => {
+      const user = telegramAuth.getCurrentUser();
+      console.log('[Header] Current user:', user);
+
+      if (user) {
+        setTelegramUser(user);
+        const url = telegramAuth.getAvatarUrl();
+        console.log('[Header] Avatar URL:', url);
+        setAvatarUrl(url);
+      }
+    };
+
+    updateUserInfo();
+
+    telegramAuth.onPhotoUpdate(updateUserInfo);
+
+    return () => {
+      telegramAuth.offPhotoUpdate(updateUserInfo);
+    };
   }, []);
 
   const displayName = telegramUser
     ? telegramAuth.getDisplayName()
     : 'Guest';
-
-  const avatarUrl = telegramUser
-    ? telegramAuth.getAvatarUrl()
-    : null;
 
   return (
     <header className="bg-black/95 backdrop-blur-md border-b border-gray-800/80 px-3 md:px-4 py-2.5 md:py-3 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-black/50">

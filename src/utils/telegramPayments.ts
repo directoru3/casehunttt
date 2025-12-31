@@ -30,15 +30,32 @@ export class TelegramPaymentService {
   }
 
   private initialize(): void {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-      this.isInitialized = true;
+    if (typeof window !== 'undefined') {
+      console.log('[TelegramPayments] Checking for Telegram WebApp...');
+
+      if (window.Telegram?.WebApp) {
+        try {
+          console.log('[TelegramPayments] WebApp found, initializing...');
+          window.Telegram.WebApp.ready();
+          window.Telegram.WebApp.expand();
+          this.isInitialized = true;
+          console.log('[TelegramPayments] Initialization successful');
+          console.log('[TelegramPayments] Platform:', window.Telegram.WebApp.platform);
+          console.log('[TelegramPayments] Version:', window.Telegram.WebApp.version);
+        } catch (error) {
+          console.error('[TelegramPayments] Initialization error:', error);
+        }
+      } else {
+        console.warn('[TelegramPayments] Telegram WebApp not found');
+        setTimeout(() => this.initialize(), 1000);
+      }
     }
   }
 
   public isAvailable(): boolean {
-    return this.isInitialized && !!window.Telegram?.WebApp;
+    const available = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
+    console.log('[TelegramPayments] isAvailable check:', available);
+    return available;
   }
 
   public getUserId(): string | null {

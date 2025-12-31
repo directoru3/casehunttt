@@ -19,6 +19,7 @@ export class TelegramAuthService {
   private isInitialized = false;
   private currentUser: TelegramUser | null = null;
   private authToken: string | null = null;
+  private photoUpdateCallbacks: Array<() => void> = [];
 
   private constructor() {
     this.initialize();
@@ -60,21 +61,73 @@ export class TelegramAuthService {
 
     const userData = webApp.initDataUnsafe?.user;
     console.log('[TelegramAuth] Raw Telegram data:', webApp.initDataUnsafe);
+    console.log('[TelegramAuth] User data:', userData);
 
     if (userData && userData.id) {
+      const photoUrl = this.getUserPhotoUrl(userData);
+
       this.currentUser = {
         id: userData.id,
         firstName: userData.first_name,
         lastName: userData.last_name,
         username: userData.username,
         languageCode: userData.language_code,
-        photoUrl: userData.photo_url,
+        photoUrl: photoUrl,
         isPremium: userData.is_premium,
       };
       console.log('[TelegramAuth] User loaded from Telegram:', this.currentUser);
+      console.log('[TelegramAuth] Photo URL:', photoUrl);
     } else {
       console.warn('[TelegramAuth] No user data in Telegram WebApp, creating demo user');
       this.createDemoUser();
+    }
+  }
+
+  private getUserPhotoUrl(userData: any): string | undefined {
+    if (userData.photo_url) {
+      console.log('[TelegramAuth] Using photo_url from userData:', userData.photo_url);
+      return userData.photo_url;
+    }
+
+    console.log('[TelegramAuth] No photo_url available in userData, will fetch from server');
+    this.fetchUserPhotoFromServer(userData.id);
+    return undefined;
+  }
+
+  private async fetchUserPhotoFromServer(userId: number): Promise<void> {
+    try {
+      console.log('[TelegramAuth] Fetching user photo from server for user:', userId);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-photo`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.photoUrl) {
+        console.log('[TelegramAuth] Photo fetched successfully:', data.photoUrl);
+        if (this.currentUser) {
+          this.currentUser.photoUrl = data.photoUrl;
+          const session = this.loadSession();
+          if (session) {
+            session.user.photoUrl = data.photoUrl;
+            this.saveSession(session);
+          }
+          this.notifyPhotoUpdate();
+        }
+      } else {
+        console.log('[TelegramAuth] No photo available from server');
+      }
+    } catch (error) {
+      console.error('[TelegramAuth] Error fetching user photo:', error);
     }
   }
 
@@ -237,11 +290,20 @@ export class TelegramAuthService {
 
   public getAvatarUrl(): string {
     if (this.currentUser?.photoUrl) {
+      console.log('[TelegramAuth] Using real photo URL:', this.currentUser.photoUrl);
       return this.currentUser.photoUrl;
     }
 
-    const firstLetter = this.currentUser?.firstName.charAt(0).toUpperCase() || 'U';
-    return `https://ui-avatars.com/api/?name=${firstLetter}&background=0D8ABC&color=fff&size=128`;
+    const displayName = this.getDisplayName();
+    const initials = displayName
+      .split(' ')
+      .map(n => n.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+
+    console.log('[TelegramAuth] Using avatar placeholder for:', displayName);
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D8ABC&color=fff&size=128&bold=true`;
   }
 
   public getDisplayName(): string {
@@ -249,6 +311,22 @@ export class TelegramAuthService {
 
     const { firstName, lastName } = this.currentUser;
     return lastName ? `${firstName} ${lastName}` : firstName;
+  }
+
+  public onPhotoUpdate(callback: () => void): void {
+    this.photoUpdateCallbacks.push(callback);
+  }
+
+  public offPhotoUpdate(callback: () => void): void {
+    const index = this.photoUpdateCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.photoUpdateCallbacks.splice(index, 1);
+    }
+  }
+
+  private notifyPhotoUpdate(): void {
+    console.log('[TelegramAuth] Notifying photo update to', this.photoUpdateCallbacks.length, 'listeners');
+    this.photoUpdateCallbacks.forEach(callback => callback());
   }
 }
 
