@@ -14,11 +14,10 @@ interface DepositModalProps {
 type PaymentMethod = 'stars' | 'ton';
 
 const STARS_PRESET_AMOUNTS = [
-  { stars: 100, coins: 0.5, bonus: '0%' },
-  { stars: 250, coins: 1.5, bonus: '+20%' },
-  { stars: 500, coins: 3.5, bonus: '+40%' },
-  { stars: 1000, coins: 8, bonus: '+60%' },
-  { stars: 2500, coins: 22, bonus: '+76%' },
+  { stars: 100, coins: 10, bonus: '0%' },
+  { stars: 500, coins: 50, bonus: '0%' },
+  { stars: 1000, coins: 100, bonus: '0%' },
+  { stars: 5000, coins: 500, bonus: '0%' },
 ];
 
 const TON_PRESET_AMOUNTS = [
@@ -28,7 +27,7 @@ const TON_PRESET_AMOUNTS = [
   { ton: 25, coins: 250 },
 ];
 
-const STARS_TO_COINS_RATE = 0.005;
+const STARS_TO_COINS_RATE = 0.1;
 const TON_TO_COINS_RATE = 10;
 
 export default function DepositModal({ onClose, onDeposit, currentBalance }: DepositModalProps) {

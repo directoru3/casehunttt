@@ -19,6 +19,7 @@ interface CaseOpenRequest {
   items: Item[];
   count?: number;
   caseName?: string;
+  casePrice?: number;
   userId?: number;
   username?: string;
   userPhotoUrl?: string;
@@ -73,7 +74,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { items, count = 1, caseName, userId, username, userPhotoUrl }: CaseOpenRequest = await req.json();
+    const { items, count = 1, caseName, casePrice = 0, userId, username, userPhotoUrl }: CaseOpenRequest = await req.json();
 
     if (!items || items.length === 0) {
       throw new Error('No items provided');
@@ -106,6 +107,36 @@ Deno.serve(async (req: Request) => {
           });
         } catch (dbError) {
           console.error('Error inserting live drop:', dbError);
+        }
+      }
+
+      if (casePrice > 0) {
+        try {
+          const totalSpent = casePrice * count;
+          const totalWon = winners.reduce((sum, w) => sum + (w.price || 0), 0);
+          const bestItemValue = Math.max(...winners.map(w => w.price || 0));
+
+          const updateUrl = `${supabaseUrl}/functions/v1/update-player-stats`;
+          const updateResponse = await fetch(updateUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+              'apikey': supabaseKey
+            },
+            body: JSON.stringify({
+              userId: userId.toString(),
+              casesOpened: count,
+              amountSpent: totalSpent,
+              amountWon: totalWon,
+              itemValue: bestItemValue
+            })
+          });
+
+          const updateResult = await updateResponse.json();
+          console.log('[CaseOpener] Player stats update result:', updateResult);
+        } catch (statsError) {
+          console.error('[CaseOpener] Error updating player stats:', statsError);
         }
       }
     }
