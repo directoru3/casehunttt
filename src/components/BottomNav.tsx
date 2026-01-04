@@ -1,8 +1,8 @@
-import { Home, BarChart3, CircleDot, TrendingUp, User } from 'lucide-react';
+import { Home, Trophy, CircleDot, TrendingUp, User } from 'lucide-react';
 
 interface BottomNavProps {
   currentPage: string;
-  onPageChange: (page: 'main' | 'profile' | 'upgrade' | 'crash') => void;
+  onPageChange: (page: 'main' | 'profile' | 'upgrade' | 'rating') => void;
 }
 
 export default function BottomNav({ currentPage, onPageChange }: BottomNavProps) {
@@ -21,15 +21,15 @@ export default function BottomNav({ currentPage, onPageChange }: BottomNavProps)
           <span className="text-[10px] md:text-xs font-medium">Cases</span>
         </button>
         <button
-          onClick={() => onPageChange('crash')}
+          onClick={() => onPageChange('rating')}
           className={`flex flex-col items-center gap-0.5 md:gap-1 transition-all active:scale-95 touch-manipulation min-w-[60px] ${
-            currentPage === 'crash' ? 'text-blue-500 scale-105' : 'text-gray-400 hover:text-white'
+            currentPage === 'rating' ? 'text-blue-500 scale-105' : 'text-gray-400 hover:text-white'
           }`}
         >
-          <div className={`p-1.5 md:p-2 rounded-xl transition-all ${currentPage === 'crash' ? 'bg-blue-500/20' : ''}`}>
-            <BarChart3 size={20} className="md:w-6 md:h-6" />
+          <div className={`p-1.5 md:p-2 rounded-xl transition-all ${currentPage === 'rating' ? 'bg-blue-500/20' : ''}`}>
+            <Trophy size={20} className="md:w-6 md:h-6" />
           </div>
-          <span className="text-[10px] md:text-xs font-medium">Crash</span>
+          <span className="text-[10px] md:text-xs font-medium">Rating</span>
         </button>
         <button className="flex flex-col items-center gap-0.5 md:gap-1 text-gray-400 transition-colors opacity-50 cursor-not-allowed min-w-[60px]">
           <div className="bg-gray-700/50 rounded-xl p-2 md:p-3">

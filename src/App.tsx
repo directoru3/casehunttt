@@ -14,14 +14,14 @@ import SecretCodeModal from './components/SecretCodeModal';
 import BottomNav from './components/BottomNav';
 import ProfilePage from './pages/ProfilePage';
 import UpgradePage from './pages/UpgradePage';
-import CrashPage from './pages/CrashPage';
+import RatingPage from './pages/RatingPage';
 import CaseOpenPage from './pages/CaseOpenPage';
 import { mockCases, mockItems } from './data/mockData';
 import { Case, Item } from './lib/supabase';
 import { telegramAuth, TelegramUser } from './utils/telegramAuth';
 import { balanceManager } from './utils/balanceManager';
 
-type Page = 'main' | 'profile' | 'upgrade' | 'crash' | 'case-open';
+type Page = 'main' | 'profile' | 'upgrade' | 'rating' | 'case-open';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -316,14 +316,8 @@ function App() {
         />
       )}
 
-      {currentPage === 'crash' && (
-        <CrashPage
-          inventory={inventory}
-          balance={balance}
-          setBalance={setBalance}
-          addItemToInventory={addItemToInventory}
-          removeItemFromInventory={removeItemFromInventory}
-        />
+      {currentPage === 'rating' && (
+        <RatingPage />
       )}
 
       {currentPage === 'case-open' && selectedCase && (
